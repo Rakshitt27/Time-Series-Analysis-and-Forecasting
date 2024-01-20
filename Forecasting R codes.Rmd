@@ -1,0 +1,3671 @@
+---
+title: "Forecasting Final Project (MATH1307)"
+author: "Rakshit Chandna s3956924"
+date: "2023-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Table of Contents
+
+- **Task 1**
+  - **Necessary Libraries**
+  - **Introduction**
+  - **Data Description**
+    - **Data Prepossessing**
+  - **Data Exploration and Visualization** 
+    - **ACF and PACF**
+  - **Tests for Stationarity**
+    - **ADF Test **
+  - **Decomposition**
+    - **X12 decomposition**
+    - **STL decomposition**
+  - **Model Fitting**
+    - **Distributed Lag Models**
+    - **Dynamic Linear Models**
+    - **Exponential Smoothing Method**
+    - **State-space Models**
+  - **Best Model Selection**
+  - **Forecasting**
+  - **Conclusion**
+
+- **Task 2**
+  - **Introduction**
+  - **Data Description**
+  - **Objective & Methodology**
+  - **Data Exploration and Visualization**
+  - **Tests for Stationarity**
+    - **ADF Test **
+  - **Model Fitting**
+    - **Distributed Lag Models**
+    - **Dynamic Linear Models**
+    - **Exponential Smoothing Method**
+    - **State-space Models**
+  - **Best Model Selection**
+  - **Forecasting**
+  - **Conclusion**
+
+- **Task 3 Part(a)**
+  - **Data Description**
+  - **Objective & Methodology**
+  - **Data Exploration and Visualization**
+  - **Tests for Stationarity**
+    - **ADF Test **
+  - **Model Fitting**
+    - **Distributed Lag Models**
+    - **Dynamic Linear Models**
+    - **Exponential Smoothing Method**
+    - **State-space Models**
+  - **Best Model Selection**
+  - **Forecasting**
+  - **Conclusion**
+
+- **Task 3 Part(b)**
+  - **Data Exploration and Visualization**
+  - **Tests for Stationarity**
+    - **ADF Test **
+  - **Model Fitting**
+    - **Distributed Lag Models**
+    - **Dynamic Linear Models**
+    - **Exponential Smoothing Method**
+    - **State-space Models**
+  - **Best Model Selection**
+  - **Forecasting**
+  - **Conclusion**
+
+- **References**
+
+# Necessary Libraries
+
+```{r message=FALSE, warning=FALSE}
+library(TSA)
+library(car)
+library(carData)
+library(lmtest)
+library(dplyr)
+library(AER) 
+library(dynlm)
+library(corrr)
+library(Hmisc)
+library(forecast)
+library(dplyr)
+library(xts)
+library(x12) 
+library(ggplot2)
+library(x13binary)
+library(nardl)
+library(dLagM)
+library(readr) 
+library(tseries)
+library(urca)
+library(expsmooth)
+```
+
+
+# Introduction
+
+The report for the assignment is segmented into three distinct tasks, each focusing on the analysis of specific time series data. In the initial task, we scrutinize five weekly series from 2010-2020, which include mortality, temperature, particle size of pollutants, and two chemical emissions named chem1 and chem2. The objective is to forecast mortality four weeks into the future. The subsequent task revolves around predicting FFD for the next four years by leveraging various climate indicators. The third task is bifurcated into sections (a) and (b). The former involves a univariate analysis of RBO, employing individual climate predictors to project its values for the coming three years. Meanwhile, section (b) necessitates another three-year forecast for RBO, this time factoring in the effects of the Australian drought that spanned from 1996 to 2009.
+
+# Task-1 Time series analysis & forecast of mortality series
+
+# Data Description
+
+From 2010 to 2020, a group of scientists studied the average weekly mortality related to specific diseases in Paris, France. They also examined the city's ambient temperature (measured in degrees Fahrenheit), the size of pollutant particles, and the concentration of harmful chemicals released from vehicles and industrial processes. The 'mort' dataset comprises weekly records for these five categories: mortality rate, temperature, size of pollutant particles, and emissions of two distinct chemicals (chem1 and chem2), spanning over 508 instances during this decade.
+
+## Importing the Dataset "Mort.csv"
+
+```{r message=FALSE, warning=FALSE}
+mort_original <- read_csv("C:/Users/Rakshit Chandna/OneDrive/Desktop/DataMain/Forecasting/mort.csv")
+head(mort_original)
+```
+
+```{r}
+class(mort_original)
+```
+
+From the above output, we can see that the original dataset variables is either in the form of table or in the data-frame. So we will convert it into Time series.
+
+# Converting data into Time series
+
+```{r}
+mort <- ts(mort_original[,2:6], start = c(2010,7), frequency = 52)
+head(mort)
+```
+
+### Converting each variable of data set into Time series on weekly basis from the year 2010
+
+```{r}
+
+
+Mort <- ts(mort_original$mortality,start = c(2010,1),frequency = 52)
+
+Temp <- ts(mort_original$temp,start = c(2010,1),frequency = 52)
+
+Chem1 <- ts(mort_original$chem1,start = c(2010,1),frequency = 52)
+
+Chem2 <- ts(mort_original$chem2,start = c(2010,1),frequency = 52)
+
+Size <- ts(mort_original$`particle size`,start = c(2010,1),frequency = 52)
+```
+
+
+# Checking Class
+
+```{r}
+cbind(Variable= c("Mortality","Temp","Chem1","Chem2","Particle size"), Class = c(class(Mort), class(Temp),class(Chem1),class(Chem2),class(Size)))
+```
+As we can now observe that we have successfully converted all the variable in the data into Time series.We will now explore and visualize the data.
+
+
+# Data Exploration and Visualisation
+
+We will now plot the converted Time Series Data for the Mortality time series variables and interpret their important characteristics using the **5 Bullet Points**:
+
+- **Trend**
+- **Seasonality**
+- **Changing Variance**
+- **Behavior**
+- **Intervention Point**
+
+## Plotting the time series graph of Mortality variable
+
+```{r, fig.cap= "Figure 1"}
+plot(Mort,ylab="Weekely Mortality",xlab="Years",main="Figure-1: Time series plot of Mortality series",type='o',col="red2")
+```
+
+From the above plot(Figure 1), the Time Series plot shows high level of **Seasonality** with successive Auto regressive points and moving average overall from the year 2010 to 2020 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly slight Downward Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 2010-2020
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 2012-2014 and 2018-2020.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a  sudden change point (peaks/drops) in the year 2013 observed in the series.
+
+
+## Plotting the time series graph of Temperature variable
+
+```{r, fig.cap= "Figure 2"}
+plot(Temp,ylab="Weekely Temperature",xlab="Years",main="Figure-2: Time series plot of Temperature series",type='o',col="darkmagenta")
+```
+
+From the above plot(Figure 2), the Time Series plot shows high level of **Seasonality** with successive Auto regressive points and moving average overall from the year 2010 to 2020 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly slight Upward Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 2010-2020
+- **Changing Variance** - There is not much changing variance present in the series .
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is not sudden change point observed in the series.
+
+
+## Plotting the time series graph of Chemical-1 variable
+
+```{r, fig.cap= "Figure 3"}
+plot(Chem1,ylab="Weekely Chemical1",xlab="Years",main="Figure-3: Time series plot of Chemical-1 series",type='o',col="orange")
+```
+
+From the above plot(Figure 3), the Time Series plot shows high level of **Seasonality** with successive Auto regressive points and moving average overall from the year 2010 to 2020 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a slight Downward Trend present in the series overall.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 2010-2020
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 2010-2011 and 2018-2019.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a  sudden change point (peaks) in the year 2011 observed in the series.
+
+
+## Plotting the time series graph of Chemical-2 variable
+
+```{r, fig.cap= "Figure 4"}
+plot(Chem2,ylab="Weekely Chemical2",xlab="Years",main="Figure-4: Time series plot of Chemical-2 series",type='o',col="blue")
+```
+
+From the above plot(Figure 4), the Time Series plot shows high level of **Seasonality** with successive Auto regressive points and moving average overall from the year 2010 to 2020 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly No Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 2010-2020
+- **Changing Variance** - There is a changing variance present in the series if looked the year 2011 and 2019 .
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is not sudden change point observed in the series.
+
+
+## Plotting the time series graph of Particle Size variable
+
+```{r, fig.cap= "Figure 5"}
+plot(Size,ylab="Weekely Particle Size",xlab="Years",main="Figure-5: Time series plot of Particle Size series",type='o',col="darkgreen")
+```
+
+From the above plot(Figure 5), the Time Series plot shows high level of **Seasonality** with successive Auto regressive points and moving average overall from the year 2010 to 2020 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly slight Upward Trend present in the series overall.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 2010-2020
+- **Changing Variance** - There is a changing variance present in the series .
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point (peak) observed in the series at year 2019.
+
+
+We will now further explore the relationship between all of the variables by plotting their time series within the same plot. In order to do that,we will perform scaling for the series.
+
+```{r, fig.cap= "Figure 6"}
+Mort_scale = scale(mort)
+plot(Mort_scale, plot.type = "s" ,xlab="Years",ylab="Mortality scaled",col = c("red","darkmagenta", "orange", "blue","darkgreen"),main="Figure-6: Time series plot of Scaled Mortality data-set")
+legend("topright",lty=1,cex=0.65, text.width = 2, col=c("red","darkmagenta", "orange", "blue","darkgreen"), c("Mortality", "Temperature", "Chemical-1", "Chemical-2","Particle size"))
+```
+
+From the above scaled plot, we can observe that all the time series are likely to be very highly correlated with each other due to their seasonality component.To confirm that correlation, we will calculate and identify the correlation between them.
+
+## Correlation among the series
+
+```{r}
+cor(mort)
+```
+
+From the above matrix of correlation we can observe that, Mortality has a moderate negative correlation with temperature and positive correlations with chem1, chem2, and particle size. Temperature has weak correlations with the other variables. Chem1 has very strong positive correlations with chem2 and particle size. Chem2 and particle size also share a strong positive correlation.
+
+## Check for Stationarity 
+
+We will now proceed with by checking the stationarity of data with the help of ACF, PACF and ADF test.
+
+### ACF and PACF of Mortality series
+
+```{r ,fig.cap="Figure 7"}
+par(mfrow=c(1,2))
+acf(Mort,main="ACF of Mortality series")
+pacf(Mort,main="PACF of Mortality series")
+```
+
+From the above ACF and PACF test, it can be interpreted that there is some trend in the series due to decaying pattern of ACF and there is also some autocorrelation present in the series shown by first significant lag in PACF.
+
+### ADF test of Mortality series
+
+$H0$ - series is non-stationary
+$H1$ - series is stationary
+
+```{r}
+adf.test(Mort)
+```
+
+From the above ADF test we can see that the p-value is less than 5% level of significance , hence we reject the null hypothesis $H0$ and confirm our series stationary.
+
+
+
+### ACF and PACF of Temperature series
+
+```{r ,fig.cap="Figure 8"}
+par(mfrow=c(1,2))
+acf(Temp,main="ACF of Temperature series")
+pacf(Temp,main="PACF of Temperature series")
+```
+
+From the above ACF and PACF test, it can be interpreted that there is some trend in the series due to decaying pattern of ACF and there is also some autocorrelation present in the series shown by first significant lag in PACF.
+
+### ADF test of Temperature series
+
+$H0$ - series is non-stationary
+$H1$ - series is stationary
+
+```{r}
+adf.test(Temp)
+```
+
+From the above ADF test we can see that the p-value is less than 5% level of significance , hence we reject the null hypothesis $H0$ and confirm our series stationary.
+
+
+### ACF and PACF of Chemical-1 series
+
+```{r, fig.cap="Figure 9"}
+par(mfrow=c(1,2))
+acf(Chem1,main="ACF of Chemical-1 series")
+pacf(Chem1,main="PACF of Chemical-1 series")
+```
+
+From the above ACF and PACF test, it can be interpreted that there is some trend in the series due to decaying pattern of ACF and there is also some autocorrelation present in the series shown by first significant lag in PACF.
+
+### ADF test of Chemical-1 series
+
+$H0$ - series is non-stationary
+$H1$ - series is stationary
+
+```{r}
+adf.test(Chem1)
+```
+
+From the above ADF test we can see that the p-value is less than 5% level of significance , hence we reject the null hypothesis $H0$ and confirm our series stationary.
+
+
+### ACF and PACF of Chemical-2 series
+
+```{r ,fig.cap="Figure 10"}
+par(mfrow=c(1,2))
+acf(Chem2,main="ACF of Chemical-2 series")
+pacf(Chem2,main="PACF of Chemical-2 series")
+```
+
+From the above ACF and PACF test, it can be interpreted that there is some trend in the series due to decaying pattern of ACF and there is also some autocorrelation present in the series shown by first significant lag in PACF.
+
+### ADF test of Chemical-2 series
+
+$H0$ - series is non-stationary
+$H1$ - series is stationary
+
+```{r}
+adf.test(Chem2)
+```
+
+From the above ADF test we can see that the p-value is less than 5% level of significance , hence we reject the null hypothesis $H0$ and confirm our series stationary.
+
+
+### ACF and PACF of Particle Size series
+
+```{r, fig.cap="Figure 11"}
+par(mfrow=c(1,2))
+acf(Size,main="ACF of Particle Size  series")
+pacf(Size,main="PACF of Particle Size series")
+```
+
+From the above ACF and PACF test, it can be interpreted that there is some trend in the series due to decaying pattern of ACF and there is also some autocorrelation present in the series shown by first significant lag in PACF.
+
+### ADF test of Particle Size  series
+
+$H0$ - series is non-stationary
+$H1$ - series is stationary
+
+```{r}
+adf.test(Size)
+```
+
+From the above ADF test we can see that the p-value is less than 5% level of significance , hence we reject the null hypothesis $H0$ and confirm our series stationary.
+
+
+As we encountered that all the 5 series above are stationary in nature. So we will now proceed with the Decomposition analysis of all the series.
+
+
+# Decomposition of Series
+
+Analyzing the impact of the components of a time series data on the given data set.The use of **STL** decomposition allows for a more thorough investigation of the time series' **seasonal**, **trend**, and **remainder**.
+
+## STL Decomposition of Mortality series
+
+
+```{r, fig.cap = "Figure 12 ", warning=FALSE}
+#Decomposition of Mort series
+Mort_stl = stl(Mort, t.window = 15, s.window = "periodic", robust = TRUE)
+plot(Mort_stl, main = "Figure 12: STL decomposition of Mortality series", col="red")
+```
+
+The STL decomposition of the mortality series revealed a trend pattern that mirrors the original series, indicating its absence. The ACF and its corresponding plot indicated seasonality in the series, meaning the observed seasonal pattern is significant. Notable interventions appear in the decomposition's remainder between 2012 & 2014 and during some weeks in 2016.
+
+
+
+## STL Decomposition of Temperature series
+
+
+```{r, fig.cap = "Figure 13 ", warning=FALSE}
+#Decomposition of Temp series
+Temp_stl = stl(Temp, t.window = 15, s.window = "periodic", robust = TRUE)
+plot(Temp_stl, main = "Figure 13: STL decomposition of Temperature series", col="darkmagenta")
+```
+
+The STL decomposition of the Temperature series indicates that its trend closely resembles the original series, suggesting no distinct trend. The ACF plot revealed clear seasonality in the series, making it essential to consider the seasonal pattern identified. Notable interventions appear in the decomposition's remainder between 2012-2013 and 2016-2017.
+
+## STL Decomposition of Chemical-1 series
+
+
+```{r, fig.cap = "Figure 14 ", warning=FALSE}
+#Decomposition of Temp series
+Chem1_stl = stl(Chem1, t.window = 15, s.window = "periodic", robust = TRUE)
+plot(Chem1_stl, main = "Figure 14: STL decomposition of Chemical-1 series", col="orange")
+```
+
+The STL decomposition of the Chemical-1 series reveals a trend pattern that mirrors the original series, with a noticeable decline. The ACF plot indicates clear seasonality, which is reflected in the decomposition as well. The remainder component of the decomposition displays multiple significant interventions.
+
+## STL Decomposition of Chemical-2 series
+
+
+```{r, fig.cap = "Figure 15 ", warning=FALSE}
+#Decomposition of Temp series
+Chem2_stl = stl(Chem2, t.window = 15, s.window = "periodic", robust = TRUE)
+plot(Chem2_stl, main = "Figure 15: STL decomposition of Chemical-2 series", col="blue")
+```
+
+The STL decomposition of the chem2 series reveals a trend that mirrors the initial series, with a noticeable downward progression. The ACF plot for this series indicates clear seasonality, which is also evident in the decomposition. The residual component of the decomposition displays multiple significant interventions.
+
+## STL Decomposition of Particle size series
+
+
+```{r, fig.cap = "Figure 16 ", warning=FALSE}
+#Decomposition of Temp series
+Size_stl = stl(Size, t.window = 15, s.window = "periodic", robust = TRUE)
+plot(Size_stl, main = "Figure 16: STL decomposition of Particle size series", col="darkgreen")
+```
+
+Based on the STL decomposition of the Particle size series, its trend is consistent with the original series, with no distinct trend evident. The ACF plot for the series indicates clear seasonality, which is mirrored in the decomposition. After 2018, notable interventions are visible in the residual component of the decomposition.
+
+
+
+# Time Series Regression Methods
+
+We will try fitting distributed lag models, which incorporate an independent explanatory series and its lags to assist explain the general variance and correlation structure in our dependent series, in an effort to identify a good model for predicting Mortality data-set overall.
+
+To determine the model's finite lag length, we create a procedure that computes measurements of accuracy like AIC/BIC and MASE for models with various lag lengths, then select the model with the lowest values.
+
+
+## Distributed Lag Model
+
+The Distributed Lag Model from the Regression models describes that the effect of an independent variable on the dependent variables occurs over the time. Therefore we require to build distributed lag models to reduce the multi-collinearity and dependency for each variable. Some of the most important used methods are:
+
+- **Finite Distributed Lag Model**
+- **Polynomial Distributed Lag Model**
+- **Koyck Distributed Lag Model**
+- **Autoregressive Distributed Lag Model**
+
+```{r}
+# Pre-defined function for sort.score
+
+sort.score <- function(x, score = c("bic", "aic")){
+  if (score == "aic"){
+    x[with(x, order(AIC)),]
+  } else if (score == "bic") {
+    x[with(x, order(BIC)),]
+  }
+   else if (score == "mase") {
+    x[with(x, order(MASE)),]
+   }
+  else {
+    warning('score = "x" only accepts valid arguments ("aic","bic","mase")')
+  }
+}
+```
+
+
+
+## Finite Distributed Lag model
+
+In order to find out the best model with the help of Finite distributed lag model, we will consider all the 5 variable series and compute them together in all possible combinations to find the best model out of it.
+
+We will also find the accurate lag-length of the model with the help of **AIC**, **BIC** and **MASE**.
+
+#### Models based on AIC
+
+```{r warning=FALSE}
+finiteDLMauto(x=as.vector(Temp+Chem1+Chem2+Size), y= as.vector(Mort), q.min = 1, q.max = 10, model.type="dlm", error.type = "AIC",trace=TRUE)
+```
+
+#### Models based on BIC
+
+```{r warning=FALSE}
+finiteDLMauto(x=as.vector(Temp+Chem1+Chem2+Size), y= as.vector(Mort), q.min = 1, q.max = 10, model.type="dlm", error.type = "BIC",trace=TRUE)
+```
+
+#### Models based on MASE
+
+```{r warning=FALSE}
+finiteDLMauto(x=as.vector(Temp+Chem1+Chem2+Size), y= as.vector(Mort), q.min = 1, q.max = 10, model.type="dlm", error.type = "MASE",trace=TRUE)
+```
+
+From the above results based on AIC, BIC and MASE we can consider the best lag-length to be 10.We will now fit different possible combinations of the model by keeping **"Mort"** as y and rest as predictor.
+
+# Distributed Model Fitting with all possible combinations
+
+```{r}
+dlm_model_temp = dlm(x=as.vector(Temp), y=as.vector(Mort), q=10)
+dlm_model_chem1 = dlm(x=as.vector(Chem1), y=as.vector(Mort), q=10)
+dlm_model_chem2 = dlm(x=as.vector(Chem2), y=as.vector(Mort), q=10)
+dlm_model_size = dlm(x=as.vector(Size), y=as.vector(Mort), q=10)
+dlm_model_temp.chem1 = dlm(x=as.vector(Temp+Chem1), y=as.vector(Mort), q=10)
+dlm_model_temp.chem2 = dlm(x=as.vector(Temp+Chem2), y=as.vector(Mort), q=10)
+dlm_model_temp.size = dlm(x=as.vector(Temp+Size), y=as.vector(Mort), q=10)
+dlm_model_chem1.chem2 = dlm(x=as.vector(Chem1+Chem2), y=as.vector(Mort), q=10)
+dlm_model_chem1.size = dlm(x=as.vector(Chem1+Size), y=as.vector(Mort), q=10)
+dlm_model_chem2.size = dlm(x=as.vector(Chem2+Size), y=as.vector(Mort), q=10)
+dlm_model_temp.chem1.size = dlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort), q=10)
+dlm_model_temp.chem2.size = dlm(x=as.vector(Temp+Chem2+Size), y=as.vector(Mort), q=10)
+dlm_model_chem1.chem2.size = dlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort), q=10)
+dlm_model_temp.chem1.chem2.size = dlm(x=as.vector(Temp+Chem1+Chem2+Size), y=as.vector(Mort), q=10)
+```
+
+
+## Comparing Sort Score based on AIC
+
+```{r}
+sort.score(AIC(dlm_model_temp$model,dlm_model_chem1$model,dlm_model_chem2$model,dlm_model_size$model,dlm_model_temp.chem1$model,dlm_model_temp.chem2$model,dlm_model_temp.size$model,dlm_model_chem1.chem2$model,dlm_model_chem1.size$model,dlm_model_chem2.size$model,dlm_model_temp.chem1.size$model,dlm_model_temp.chem2.size$model,dlm_model_chem1.chem2.size$model,dlm_model_temp.chem1.chem2.size$model), score = "aic")
+```
+
+From the above out put we can say that the model "dlm_model_chem1" is the best model based on AIC scores.
+
+
+## Comparing Sort Score based on BIC
+
+```{r}
+sort.score(BIC(dlm_model_temp$model,dlm_model_chem1$model,dlm_model_chem2$model,dlm_model_size$model,dlm_model_temp.chem1$model,dlm_model_temp.chem2$model,dlm_model_temp.size$model,dlm_model_chem1.chem2$model,dlm_model_chem1.size$model,dlm_model_chem2.size$model,dlm_model_temp.chem1.size$model,dlm_model_temp.chem2.size$model,dlm_model_chem1.chem2.size$model,dlm_model_temp.chem1.chem2.size$model), score = "bic")
+```
+
+From the above output, we again got the same model "dlm_model_chem1" as our best model with respect to the BIC scores.
+
+
+## Comparing Sort Score based on BIC
+
+```{r}
+sort.score(MASE(dlm_model_temp$model,dlm_model_chem1$model,dlm_model_chem2$model,dlm_model_size$model,dlm_model_temp.chem1$model,dlm_model_temp.chem2$model,dlm_model_temp.size$model,dlm_model_chem1.chem2$model,dlm_model_chem1.size$model,dlm_model_chem2.size$model,dlm_model_temp.chem1.size$model,dlm_model_temp.chem2.size$model,dlm_model_chem1.chem2.size$model,dlm_model_temp.chem1.chem2.size$model), score = "mase")
+```
+
+From the above outputs, again the model "dlm_model_chem1" is considered to be the best with respect to the MASE scores.
+
+
+## Analysisng the model "dlm_model_chem1" 
+
+We will now analyse and summarize the best model from the finite distributed lag model based on the AIC , BIC and MASE scores.
+
+```{r}
+finite_best = dlm(x=as.vector(Chem1), y=as.vector(Mort), q=10)
+summary(finite_best)
+```
+
+From the outputs of **finite_best** model and its summary :
+
+- The **AIC** and **BIC** scores of the model have been reported $3694.7$ and $3749.43$.
+- The adjusted R-squared value reported was $0.53$ which is not bad.
+- Few of the coefficients are significant.
+- The F-statistic is reported at $51.97$ on 11 and 486 Degrees of Freedom.
+
+## Residual Analysis of the model "dlm_model_chem1"
+
+```{r}
+checkresiduals(dlm_model_chem1$model)
+```
+
+From the outputs of Model "dlm_model_chem1" residuals :
+
+- The p-value from Breusch-Godfrey test was less than significance level of $0.05$.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual seems to follow a trend overall.
+
+So, we can conclude that the model "dlm_model_chem1" is a decent model with a appropriate composition of residuals.
+
+
+
+## Polynomial Distributed Lag Model
+
+We will now proceed with fitting a polynomial model with the help of "finiteDLMauto" function and select the best lag length before choosing the best model with respect to AIC, BIC and MASE.
+
+### Models based on AIC
+
+```{r warning=FALSE}
+finiteDLMauto(x = as.vector(Temp+Chem1+Chem2+Size), y = as.vector(Mort), q.min = 1, q.max = 10, k.order = 2,
+              model.type = "poly", error.type ="AIC", trace = TRUE)
+```
+
+## Models based on BIC
+
+```{r warning=FALSE}
+finiteDLMauto(x = as.vector(Temp+Chem1+Chem2+Size), y = as.vector(Mort), q.min = 1, q.max = 10, k.order = 2,
+              model.type = "poly", error.type ="BIC", trace = TRUE)
+```
+
+## Models based on MASE
+
+```{r warning=FALSE}
+finiteDLMauto(x = as.vector(Temp+Chem1+Chem2+Size), y = as.vector(Mort), q.min = 1, q.max = 10, k.order = 2,
+              model.type = "poly", error.type ="MASE", trace = TRUE)
+```
+
+Hence, from the above AIC, BIC and MASE we can consider the lag-length 10 as the best in order to find out the scores and ultimately the best polynomial model.
+
+# Polynomial Model Fitting with all possible combinations 
+
+```{r include=FALSE}
+poly_model_temp = polyDlm(x=as.vector(Temp), y=as.vector(Mort), q=10, k=2)
+poly_model_chem1 = polyDlm(x=as.vector(Chem1), y=as.vector(Mort), q=10, k=2)
+poly_model_chem2 = polyDlm(x=as.vector(Chem2), y=as.vector(Mort), q=10, k=2)
+poly_model_size = polyDlm(x=as.vector(Size), y=as.vector(Mort), q=10, k=2)
+poly_model_temp.chem1 = polyDlm(x=as.vector(Temp+Chem1), y=as.vector(Mort), q=10, k=2)
+poly_model_temp.chem2 = polyDlm(x=as.vector(Temp+Chem2), y=as.vector(Mort), q=10, k=2)
+poly_model_temp.size = polyDlm(x=as.vector(Temp+Size), y=as.vector(Mort), q=10, k=2)
+poly_model_chem1.chem2 = polyDlm(x=as.vector(Chem1+Chem2), y=as.vector(Mort), q=10, k=2)
+poly_model_chem1.size = polyDlm(x=as.vector(Chem1+Size), y=as.vector(Mort), q=10, k=2)
+poly_model_chem2.size = polyDlm(x=as.vector(Chem2+Size), y=as.vector(Mort), q=10, k=2)
+poly_model_temp.chem1.size = polyDlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort), q=10, k=2)
+poly_model_temp.chem2.size = polyDlm(x=as.vector(Temp+Chem2+Size), y=as.vector(Mort), q=10, k=2)
+poly_model_chem1.chem2.size = polyDlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort), q=10, k=2)
+poly_model_temp.chem1.chem2.size = polyDlm(x=as.vector(Temp+Chem1+Chem2+Size), y=as.vector(Mort), q=10, k=2)
+```
+
+
+## Comparing Sort Scores based on AIC
+
+```{r}
+sort.score(AIC(poly_model_temp$model,
+               poly_model_chem1$model,poly_model_chem2$model,
+               poly_model_size$model,poly_model_temp.chem1$model,
+               poly_model_temp.chem2$model,poly_model_temp.size$model,
+               poly_model_chem1.chem2$model,poly_model_chem1.size$model,
+               poly_model_chem2.size$model,poly_model_temp.chem1.size$model,
+               poly_model_temp.chem2.size$model,poly_model_chem1.chem2.size$model,
+               poly_model_temp.chem1.chem2.size$model), score = "aic")
+```
+
+
+## Comparing Sort Scores based on BIC
+
+```{r}
+sort.score(BIC(poly_model_temp$model,
+               poly_model_chem1$model,poly_model_chem2$model,
+               poly_model_size$model,poly_model_temp.chem1$model,
+               poly_model_temp.chem2$model,poly_model_temp.size$model,
+               poly_model_chem1.chem2$model,poly_model_chem1.size$model,
+               poly_model_chem2.size$model,poly_model_temp.chem1.size$model,
+               poly_model_temp.chem2.size$model,poly_model_chem1.chem2.size$model,
+               poly_model_temp.chem1.chem2.size$model), score = "bic")
+```
+
+
+## Comparing Sort Scores based on MASE
+
+```{r}
+sort.score(MASE(poly_model_temp$model,
+               poly_model_chem1$model,poly_model_chem2$model,
+               poly_model_size$model,poly_model_temp.chem1$model,
+               poly_model_temp.chem2$model,poly_model_temp.size$model,
+               poly_model_chem1.chem2$model,poly_model_chem1.size$model,
+               poly_model_chem2.size$model,poly_model_temp.chem1.size$model,
+               poly_model_temp.chem2.size$model,poly_model_chem1.chem2.size$model,
+               poly_model_temp.chem1.chem2.size$model), score = "mase")
+```
+
+From the out puts of above sort scores based on AIC, BIC and MASE we can observe that the model "poly_model_chem1" is considered as the best model overall.
+
+
+## Analysisng the model "poly_model_chem1" 
+
+We will now analyse and summarize the best model from the Polynomial distributed lag model based on the AIC , BIC and MASE scores.
+
+```{r}
+polynomial_best = polyDlm(x=as.vector(Chem1), y=as.vector(Mort), q=10, k=2)
+summary(polynomial_best)
+```
+
+From the outputs of **polynomial_best** model and its summary :
+
+- The residual standard error was 9.94 on 494 defrees of freedom..
+- The adjusted R-squared value reported was $0.51$ which is not bad.
+- 2 out of 4 of the coefficients are significant.
+- The F-statistic is reported at $173.9$ on 3 and 494 Degrees of Freedom.
+
+## Residual Analysis of the model "poly_model_chem1"
+
+```{r}
+checkresiduals(polynomial_best$model)
+```
+
+From the outputs of Model "poly_model_chem1" residuals :
+
+- The p-value from Breusch-Godfrey test was less than significance level of $0.05$.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual seems to follow a trend overall.
+- The histogram doesn't seems to follow normal distribution and a bit right skewed.
+
+So, we can conclude that the model "poly_model_chem1" is a decent model with an appropriate composition of residuals.
+
+
+
+# Koyck Distributed Lag Model
+
+We will now proceed with fitting a Koyck model with the help of "koyckDlm" function and select the best lag length before choosing the best model with respect to AIC, BIC and MASE.
+
+
+## Koyck Model Fitting with all possible combinations 
+
+```{r echo=TRUE}
+koyck_model_temp = koyckDlm(x=as.vector(Temp), y=as.vector(Mort))
+koyck_model_chem1 = koyckDlm(x=as.vector(Chem1), y=as.vector(Mort))
+koyck_model_chem2 = koyckDlm(x=as.vector(Chem2), y=as.vector(Mort))
+koyck_model_size = koyckDlm(x=as.vector(Size), y=as.vector(Mort))
+koyck_model_temp.chem1 = koyckDlm(x=as.vector(Temp+Chem1), y=as.vector(Mort))
+koyck_model_temp.chem2 = koyckDlm(x=as.vector(Temp+Chem2), y=as.vector(Mort))
+koyck_model_temp.size = koyckDlm(x=as.vector(Temp+Size), y=as.vector(Mort))
+koyck_model_chem1.chem2 = koyckDlm(x=as.vector(Chem1+Chem2), y=as.vector(Mort))
+koyck_model_chem1.size = koyckDlm(x=as.vector(Chem1+Size), y=as.vector(Mort))
+koyck_model_chem2.size = koyckDlm(x=as.vector(Chem2+Size), y=as.vector(Mort))
+koyck_model_temp.chem1.size = koyckDlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort))
+koyck_model_temp.chem2.size = koyckDlm(x=as.vector(Temp+Chem2+Size), y=as.vector(Mort))
+koyck_model_chem1.chem2.size = koyckDlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort))
+koyck_model_temp.chem1.chem2.size = koyckDlm(x=as.vector(Temp+Chem1+Chem2+Size), y=as.vector(Mort))
+```
+
+
+
+## Comparing Sort Scores based on MASE
+
+```{r}
+koyck_MASE <- MASE(koyck_model_temp,
+               koyck_model_chem1,koyck_model_chem2,
+               koyck_model_size,koyck_model_temp.chem1,
+               koyck_model_temp.chem2,koyck_model_temp.size,
+               koyck_model_chem1.chem2,koyck_model_chem1.size,
+               koyck_model_chem2.size,koyck_model_temp.chem1.size,
+               koyck_model_temp.chem2.size,koyck_model_chem1.chem2.size,
+               koyck_model_temp.chem1.chem2.size)
+
+# Sorting Mase scores in ascending order
+arrange(koyck_MASE,MASE)
+```
+
+From the above scores, we can say that the model "koyck_model_chem1" is the best one with respect to the MASE scores.We will now further analyse and summarize the model.
+
+## Analysisng the model "koyck_model_chem1" 
+
+We will now analyse and summarize the best model from the Koyck distributed lag model based on the MASE scores.
+
+```{r}
+koyck_best = koyckDlm(x=as.vector(Chem1), y=as.vector(Mort))
+summary(koyck_best)
+```
+
+From the outputs of **koyck_best** model and its summary :
+
+- The residual standard error was 9.01 on 504 degrees of freedom..
+- The adjusted R-squared value reported was $0.59$ which is better than previous ones.
+- All the coefficients of this model are significant.
+- The Wald test is reported at $336.8$ on 2 and 504 Degrees of Freedom.
+- The values of Alpha , Beta and phi are  $153.011$,	$0.70587$ and $0.65057$.
+
+
+## Residual Analysis of the model "koyck_model_chem1"
+
+```{r}
+checkresiduals(koyck_best$model)
+```
+
+From the outputs of Model "koyck_model_chem1" residuals :
+
+- The p-value from Breusch-Godfrey test was less than significance level of $0.05$.
+- The ACF plot reveals that there correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual doesnot seems to follow a trend overall.
+- The histogram doesn't seems to follow normal distribution and a bit right skewed.
+
+So, we can conclude that the model "koyck_model_chem1" is a decent model with an appropriate composition of residuals.
+
+
+# Autoregressive Distributed Lag Model
+
+We will now proceed with fitting a Auto-regressive Distributed lag model with the help of for loop "ardlDlm" function and select the best lag length before choosing the best model with respect to AIC, BIC and MASE.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    autoreg_model = ardlDlm(x= as.vector(Temp+Chem1+Chem2+Size),y=as.vector(Mort), p = i , q = j )
+    cat("p =", i, "q =", j, "AIC =", AIC(autoreg_model$model), "BIC =", BIC(autoreg_model$model), "MASE =", MASE(autoreg_model)$MASE, "\n")
+  }
+}
+```
+
+From the above results of sort score, the lowest value of MASE has been recorded at ARDL(5,5). Hence we will consider p=5 and q=5 while selecting and analyzing the best model.
+
+```{r}
+ardl_model_temp = ardlDlm(x=as.vector(Temp), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_chem1 = ardlDlm(x=as.vector(Chem1), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_chem2 = ardlDlm(x=as.vector(Chem2), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_size = ardlDlm(x=as.vector(Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_temp.chem1 = ardlDlm(x=as.vector(Temp+Chem1), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_temp.chem2 = ardlDlm(x=as.vector(Temp+Chem2), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_temp.size = ardlDlm(x=as.vector(Temp+Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_chem1.chem2 = ardlDlm(x=as.vector(Chem1+Chem2), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_chem1.size = ardlDlm(x=as.vector(Chem1+Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_chem2.size = ardlDlm(x=as.vector(Chem2+Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_temp.chem1.size = ardlDlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_temp.chem2.size = ardlDlm(x=as.vector(Temp+Chem2+Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_chem1.chem2.size = ardlDlm(x=as.vector(Temp+Chem1+Size), y=as.vector(Mort), p = 5, q = 5)
+ardl_model_temp.chem1.chem2.size = ardlDlm(x=as.vector(Temp+Chem1+Chem2+Size), y=as.vector(Mort), p = 5, q = 5)
+```
+
+
+## Comparing Sort Scores based on MASE
+
+```{r}
+ardl_MASE <- MASE(ardl_model_temp,
+               ardl_model_chem1,ardl_model_chem2,
+               ardl_model_size,ardl_model_temp.chem1,
+               ardl_model_temp.chem2,ardl_model_temp.size,
+               ardl_model_chem1.chem2,ardl_model_chem1.size,
+               ardl_model_chem2.size,ardl_model_temp.chem1.size,
+               ardl_model_temp.chem2.size,ardl_model_chem1.chem2.size,
+               ardl_model_temp.chem1.chem2.size)
+
+# Sorting Mase scores in ascending order
+arrange(ardl_MASE,MASE)
+```
+
+From the above outputs, we can observe that the best Autoregressive distributed lag model being selected based on MASE scores is the "ardl_model_chem1.size" which is combination of predictors Chemical 1 and particle size.Hence we will further analyse the model and do the summary and residual outputs.
+
+
+## Analysisng the model "ardl_model_chem1.size" 
+
+We will now analyse and summarize the best model from the Autoregressive distributed lag model based on the MASE scores.
+
+```{r}
+ardl_best = ardlDlm(x=as.vector(Chem1+Size), y=as.vector(Mort))
+summary(ardl_best)
+```
+
+From the outputs of **ardl_best** model and its summary :
+
+- The residual standard error was 8.955 on 503 degrees of freedom..
+- The adjusted R-squared value reported was $0.60$ which is better than previous ones.
+- All the coefficients of this model are significant.
+- The F-statistic is reported at $255.4$ on 3 and 503 Degrees of Freedom.
+- The p-values was less than 5% level.
+
+
+## Residual Analysis of the model "ardl_model_chem1.size"
+
+```{r}
+checkresiduals(ardl_model_chem1.size$model)
+```
+
+From the outputs of Model "ardl_model_chem1.size" residuals :
+
+- The p-value from Breusch-Godfrey test was greater than significance level of $0.05$.
+- The ACF plot reveals that there is less correlation exist in residual due to just one significant lag present in the ACF.
+- The time-series plot of residual doesn't seems to follow a trend overall.
+- The histogram seems to follow normal distribution overall.
+
+So, we can conclude that the model "ardl_model_chem1.size" is a better model as compared to previos ones with an appropriate composition of residuals.
+
+
+# Comparing all Lag models above wrt MASE:
+
+```{r}
+mort_dlm_mase <- MASE(finite_best,polynomial_best,koyck_best,ardl_best)
+print(mort_dlm_mase)
+```
+
+Hence from the above output, we can confirm that "Finite_best" model from finite dlm is the best model based on MASE scores as compared to the rest. Hence model finite with "particle size" as predictor is the best model.
+
+
+# Dynamic Linear Models
+
+We'll utilize the dynlm() function in the "dynlm" package to fit the model. In order to incorporate a trend component and a seasonal component, the argument formula for the model can contain the functions trend() and season().
+
+```{r}
+# Variables for Trend and Seasonality under Dynlm models
+Y.t <- Mort
+T <-  156   # first intervention point in year 2013(156 weeks)
+S.t <-  1*(seq(Y.t) == T)
+S.t.1 <-  Lag(S.t,+1) 
+```
+
+```{r}
+# Fitting dynamic linear models 
+dynlm1 <-  dynlm(Y.t ~ L(Y.t , k = 1 ) + S.t + trend(Y.t) + season(Y.t))
+
+dynlm2 <-  dynlm(Y.t ~ L(Y.t , k = 2 ) + S.t + trend(Y.t) + season(Y.t))
+
+dynlm3 <-  dynlm(Y.t ~ L(Y.t , k = 1 ) + S.t + season(Y.t))
+
+dynlm4 <-  dynlm(Y.t ~ L(Y.t , k = 1 ) + S.t + trend(Y.t))
+
+dynlm5 <-  dynlm(Y.t ~ Chem1 + L(Y.t , k = 2 ) + S.t + trend(Y.t) + season(Y.t))
+
+dynlm6 <-  dynlm(Y.t ~ Chem2 + L(Y.t , k = 2 ) + S.t + trend(Y.t) + season(Y.t))
+
+dynlm7 <-  dynlm(Y.t ~ Temp + L(Y.t , k = 2 ) + S.t + trend(Y.t) + season(Y.t))
+
+dynlm8 <-  dynlm(Y.t ~ Size + L(Y.t , k = 2 ) + S.t + trend(Y.t) + season(Y.t))
+```
+
+## Dynamic Linear models compariosn
+
+```{r}
+dynlm_mase <- MASE(lm(dynlm1), lm(dynlm2), lm(dynlm3), lm(dynlm4),lm(dynlm5),lm(dynlm6),lm(dynlm7),lm(dynlm8))
+arrange(dynlm_mase,MASE)
+```
+
+
+From the above result of MASE scores , we can say that the model "dynlm8" with predictor "particle size" comes out to be the best among all with least MASE and AIC scores. Hence we will further analyse the model and do summary and residual analysis.
+
+
+## Analysisng the model "dynlm8" 
+
+We will now analyse and summarize the best model "dynlm8" from the Dynamic linear model based on the MASE scores.
+
+```{r}
+dynlm_best = dynlm8 <-  dynlm(Y.t ~ Size + L(Y.t , k = 2 ) + S.t + trend(Y.t) + season(Y.t))
+summary(dynlm_best)
+```
+
+From the outputs of **dynlm8** model and its summary :
+
+- The residual standard error was 7.974 on 450 degrees of freedom..
+- The adjusted R-squared value reported was $0.68$ which is better than previous ones.
+- Very few of the coefficients of this model are significant.
+- The F-statistic is reported at $20.78$ on 55 and 450 Degrees of Freedom.
+- The p-values was less than 5% level.
+
+## Residual Analysis of the model "dynlm8"
+
+```{r}
+checkresiduals(dynlm8)
+```
+
+From the outputs of Model "dynlm8" residuals :
+
+- The p-value from Breusch-Godfrey test was less than significance level of $0.05$.
+- The ACF plot reveals that there is less correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual seems to follow a trend overall with seasonal repititions.
+- The histogram seems to follow normal distribution overall.
+
+So, we can conclude that the model "dynlm8" is a better model as compared to previous ones with an appropriate composition of residuals.
+
+
+
+# Exponential Smoothing Method
+
+We'll now test with exponential smoothing as a forecasting technique. We will only take into account models that feature either additive or multiplicative seasonality because we have discovered a substantial seasonal component in mortality series that we wish to make predictions for. 
+
+```{r}
+# Converting Mortality data series into monthly format
+
+Mort_monthly = aggregate(zoo(Mort),as.yearmon,sum)
+
+Mort_monthly[Mort_monthly==12.11] <- NA
+
+Mort_monthly = na.omit(Mort_monthly)
+
+# Converting into Time series format
+
+Mort_monthly <- ts(as.vector(t(as.matrix(Mort_monthly[,2:13]))),start=c(2010,1),end = c(2019,9),frequency = 12)
+
+# Print
+Mort_monthly
+```
+
+## Holt-Winters’ Trend and Seasonality Method 
+
+```{r}
+# Estimating the model based on several scores
+
+seasonal = c("additive","multiplicative")
+damped = c(TRUE,FALSE)
+expand = expand.grid(seasonal,damped)
+hw_AIC = array(NA,4)
+hw_BIC = array(NA,4)
+hw_MASE=array(NA,4)
+steps = array(NA, dim=c(4,2))
+
+# Iterating through a for loop
+              
+for(i in 1:4){hw_AIC[i]= hw(Mort_monthly, 
+                               seasonal = toString(expand[i ,1]),                    
+                               damped = expand[i ,2])$model$aic
+              hw_BIC[i]= hw(Mort_monthly, 
+                               seasonal = toString(expand[i ,1]),                    
+                               damped = expand[i ,2])$model$bic
+
+               hw_MASE[i]= accuracy(hw(Mort_monthly, 
+                               seasonal = toString(expand[i ,1]),                    
+                               damped = expand[i ,2]))[,6]
+steps[i,1]= toString(expand[i ,1])  
+steps[i,2]= expand[i ,2]
+}
+accuracy_hw = data.frame(steps, hw_MASE, hw_AIC,hw_BIC)
+colnames(accuracy_hw)= c("seasonal","Damped","MASE", "AIC","BIC")
+
+# Printing accuracy scores
+
+arrange(accuracy_hw,MASE)
+```
+
+From the results presented, it's evident that the Holt-Winter's multiplicative seasonality model outperforms others in terms of MASE and AIC. Therefore, we should delve deeper into exploring all potential Holt-Winter's multiplicative seasonality models since they seem to surpass the additive ones in terms of precision metrics.
+
+
+# Fitting Holt-Winters’ Trend and Seasonality models
+
+### Fitting multiplicative model with damped as True
+
+```{r}
+
+hw1 <- hw(Mort_monthly, seasonal = "multiplicative", damped = TRUE)
+
+# Checking summary
+summary(hw1$model)
+```
+
+```{r}
+# Checking Residuals
+checkresiduals(hw1)
+```
+
+From the outputs of above Model "hw1" and its residuals :
+
+- The critical values of  AIC is $1356.636$, AICc is $1363.616$ and BIC is $1406.356$.
+- The MASE value was reported at $0.66911$.
+- The is No trend observed in the residual time series.
+- The p-value from the Ljung-Box test was above **5%** level of significance.
+- The histogram seems to be normally distributed overall.
+- The ACF plot have first significant **Lag** at the stating point.
+
+
+### Fitting multiplicative model with exponential as TRUE
+
+```{r}
+
+hw2 <- hw(Mort_monthly, seasonal = "multiplicative", exponential = TRUE)
+
+#Checking summary
+summary(hw2$model)
+```
+```{r}
+# Checking Residuals
+checkresiduals(hw2)
+```
+
+From the outputs of above Model "hw2" and its residuals :
+
+- The critical values of  AIC is $1443.296$, AICc is $1449.478$ and BIC is $1490.253$.
+- The MASE value was reported at $1.054844$.
+- The is an upward trend observed in the residual time series.
+- The p-value from the Ljung-Box test was below **5%** level of significance.
+- The histogram doesn't seems to be normally distributed overall.
+- The ACF plot have many significant **Lags** at the stating point and overall.
+
+
+### Fitting multiplicative model with exponential and damped as TRUE
+
+```{r}
+
+hw3 <- hw(Mort_monthly, seasonal = "multiplicative", exponential = TRUE, damped = TRUE)
+
+#Checking summary
+summary(hw3$model)
+```
+
+```{r}
+# Checking Residuals
+checkresiduals(hw3)
+```
+
+From the outputs of above Model "hw3" and its residuals :
+
+- The critical values of  AIC is $1354.114$, AICc is $1361.094$ and BIC is $1403.833$.
+- The MASE value was reported at $0.6689894$.
+- The is No trend observed in the residual time series.
+- The p-value from the Ljung-Box test was above **5%** level of significance.
+- The histogram doesn't seems to be normally distributed overall.
+- The ACF plot have one significant **Lag** at the stating point.
+
+
+
+## Best Holt-Winter's model 
+
+From the model fitting of three different Holt-Winter's model above, we can confirm that the Holt-Winter's model with **exponential** and **damped** (hw3) component is resulted to be the best model based on the MASE score at $0.6689$ followed by Holt-Winter's **damped** component model(hw2).
+
+
+
+# State Space Models
+
+```{r}
+# Pre-defined function for State-space models
+
+models = c("AAA","MAA","MAM","MMM")
+dampeds = c(TRUE,FALSE)
+expand = expand.grid(models,dampeds)
+fit.AICc = array(NA,8)
+fit.MASE=array(NA,8)
+levels = array(NA, dim=c(8,2))
+              
+for(i in 1:6){fit.AICc[i]= ets(Mort_monthly, 
+                               model = toString(expand[i ,1]),                    
+                               damped = expand[i ,2])$aicc 
+              fit.MASE[i]= accuracy(ets(Mort_monthly, 
+                               model = toString(expand[i ,1]),                    
+                               damped = expand[i ,2]))[,6]
+levels[i,1]= toString(expand[i ,1])  
+levels[i,2]= expand[i ,2]
+}
+# Estimating ANN and ANA separately with damped=True.
+fit.AICc[7]= ets(Mort_monthly, model ="ANN")$aicc
+fit.AICc[8]= ets(Mort_monthly, model ="ANA")$aicc
+fit.MASE[7]= accuracy(ets(Mort_monthly, model ="ANN"))[,6]
+fit.MASE[8]= accuracy(ets(Mort_monthly, model ="ANA"))[,6]
+levels[7,1]="ANN"
+levels[8,1]="ANA"
+levels[7,2]=FALSE
+levels[8,2]=FALSE
+output = data.frame(levels, fit.MASE, fit.AICc)
+colnames(output)= c("Model","Damped","MASE","AIC")
+output
+```
+
+From the above plotted models, the model "MAM" has the least MASE score as 0.666. We will further delve into computing another types of models using the ETS-auto technique.
+
+
+### Automated ETS model
+
+```{r}
+fit.auto.mort = ets(Mort_monthly,model="MAM", damped = TRUE)
+summary(fit.auto.mort)
+```
+
+```{r}
+# Checking Residuals
+checkresiduals(fit.auto.mort)
+```
+
+From the outputs of above Model "auto-ETS" and its residuals :
+
+- The critical values of  AIC is $1350.160$, AICc is $1354.913$ and BIC is $1391.593$.
+- The MASE value was reported at $0.6662357$.
+- The is No trend observed in the residual time series.
+- The p-value from the Ljung-Box test was below **5%** level of significance.
+- The histogram seems to be normally distributed overall.
+- The ACF plot have one significant **Lag** at the stating point.
+
+
+# Summary Analysis of Chosen models
+
+```{r}
+mase_dlm <- rbind(mort_dlm_mase, dynlm_mase)
+arrange(mase_dlm, MASE)
+```
+
+From the above comparison , we can clearly see that the model "**dynlm8**" is considered to be the best model with respect to the least MASE scores.
+
+
+Next we will compare and detect the best model from the Holt-Winter's method from Exponential smoothing.
+
+## Models from Exponential Smoothing
+
+```{r}
+# Based on Accuracy scores for all models with damped and seasonality
+
+arrange(accuracy_hw,MASE)
+```
+
+As we can see that the best model from above table is seasonal multiplicative with damped as True with respect to the least MASE score.
+
+Lets further evaluate the accuracy of model "hw3"
+
+```{r}
+accuracy(hw3)
+```
+
+So the best model **Holt-Winter's** with **exponential** and **damped** component **hw3** is the best with MASE score as $0.668$.
+
+Lastly we will check the models from **ETS** method.
+
+```{r}
+# Models from auto-ETS method
+arrange(output,MASE)
+```
+
+From the results of ETS_models, we can clearly see that the model **MAM** is the best with respect to the MASE scores as $0.666$.
+
+```{r}
+accuracy(fit.auto.mort)
+```
+
+Hence, among all the ETS models, the model **fit.auto.mort** or **MAM** turns out to be the best with respect to the MASE scores.
+
+# Best Model Slection
+
+We have now successfully done the modelling process and selected the best models from each methods. Among the best ones, we will finally select one best model with respect to the MASE scores.
+
+```{r}
+final_model <- data.frame(Model = c("dynlm1 dynamic linear model","Holt-Winter's ES model","MMM_NA ETS model"), MASE = c(0.6935111,0.6662357,0.6691194))
+
+arrange(final_model, MASE)
+```
+
+Based on the outcomes presented, the most suitable model for the monthly mortality data-set is the Holt-Winter’s Exponential Smoothing (ES) model, which incorporates both exponential and damped elements. Conversely, for the weekly dataset, the dynlm1 dynamic linear model is the best fit. Predictions will be made for both the weekly and monthly mortality series using the optimal models determined for each, grounded in metrics such as MASE, R2, and other accuracy indicators.
+
+
+
+# Forecasting
+
+
+
+
+# Forecasting the Next Four Weeks by Holt-Winter's method
+
+
+```{r}
+# Fitting model
+
+fit.forecast <- hw(Mort_monthly, seasonal = "multiplicative",damped = TRUE, exponential = TRUE, h=frequency(Mort_monthly))
+
+# Generating forecasts
+
+fitting <- fit.forecast$mean
+upper_limit <- fit.forecast$upper[,2]
+lower_limit <- fit.forecast$lower[,2]
+
+predict_Mort <- ts.intersect(ts(lower_limit, start = c(2019,1), frequency = 12), ts(fitting,start = c(2019,1), frequency = 12), ts(upper_limit,start = c(2019,1), frequency = 12))
+
+colnames(predict_Mort) <- c("Lower Limit", "Prediction Points", "Upper limit")
+
+# Displaying forecasts
+
+predict_Mort
+```
+
+```{r, fig.cap= "Figure 17"}
+# Load required packages
+library(forecast)
+
+# Fitting model
+fit.forecast <- hw(Mort_monthly, seasonal = "multiplicative", damped = TRUE, exponential = TRUE, h=4) # Setting h=1
+
+# Plotting
+plot(fit.forecast, fcol = "white", main = "Figure 17: Mortality series with one month forecasts using Holt-Winter's model", ylab = "Mortality", xlab = "Time period")
+#lines(fitted(fit.forecast), col = "blue")
+lines(fit.forecast$mean, col = "blue", lwd = 2)
+legend("bottomleft", lty = 1,cex = 0.75, col = c("black", "blue"), c("Data", "Forecasts"))
+
+```
+
+The predictions produced are visually represented in the charts above. The model struggles to fully capture the nuances of the original data and overlooks significant intervention points. While the Damped & Exponential HW Multiplicative model provides forecasts for monthly data (formerly weekly), the accuracy of these predictions seems descent overall.
+
+
+# Forecasting the Next Four Weeks by ETS method
+
+
+```{r}
+forecast_result <- forecast.ets(fit.auto.mort, h=4)
+
+```
+
+
+```{r, fig.cap= "Figure 18"}
+plot_forecast <- function(forecast_result) {
+  p <- autoplot(forecast_result, main="Forecasts from ETS(M,Ad,M)") + 
+    guides(fill=guide_legend(title="Prediction Interval")) +
+    theme_minimal()
+  
+  return(p)
+}
+
+plot_forecast(forecast_result)
+
+```
+
+Based on the displayed graph, it suggests that mortality will be on a roller-coaster of highs and lows in the upcoming four weeks, as denoted by the blue line. This forecast seems more trustworthy than the prior model since it aligns more closely with the data.
+
+
+# Task 2 - Time series analysis & forecast of FFD series
+
+# Data Description
+
+In a 2021 study, Hudson & Keatley explored the influence of various climatic factors, such as rainfall, temperature, radiation levels, and relative humidity, on the initial bloom date of a species (referred to as the First Flowering Day or FFD, a value ranging from 1-365). Their study concentrated on examining the effects of long-term climate changes on the FFD for 81 different plant species spanning from 1984 to 2014.
+
+The dataset ‘FFD.csv’ provides details on one of these 81 species and includes five distinct time series. This captures the FFD trend for the specified plant species alongside the average annual climate metrics observed from 1984 to 2014, a period covering 31 years. The climatic variables recorded include temperature, rainfall, relative humidity, and radiation levels.
+
+
+# Objectives and Methodology
+
+The primary aim of task 2 is to delve deep into the FFD data and provide a forecast for the upcoming four years. Here's the approach:
+
+1. **Data Preprocessing**: We'll start by cleaning the data from the 'FFD.csv' file. This involves identifying and handling any missing, unique, or unfamiliar data points. We'll transform each series from the file into a time series format, enabling us to display yearly data values across all series, which is essential for time series analysis.
+
+2. **Covariate File Loading**: We will import the covariate file, which will play a crucial role in the forecasting phase.
+
+3. **Time Series Exploration**: By visualizing individual time series plots and juxtaposing them, we'll gain insights into each series' behavior and characteristics. A key aspect of this phase will be to determine if the series are stationary. Tools like the Autocorrelation Function (ACF), Partial Autocorrelation Function (PACF), and the Dicker-Fuller Unit tests will be instrumental in this analysis.
+
+4. **Correlation Analysis**: To understand the interdependence between the series, we'll generate a correlation matrix. This will show how each series relates to the others.
+
+5. **Modeling with Distributed Lag Models (DLMs)**: Various DLMs will be employed to understand the relationship between the series.
+
+6. **Advanced Modeling**: Depending on the findings from our preliminary analysis, we'll fit several models to the data. These might include DynLMs, Exponential Smoothing methods, and State-Space models.
+
+7. **Forecasting and Model Evaluation**: Using the models we've chosen, we'll produce forecasts. These projections will be evaluated using a range of metrics like R², F-test, Akaike's Information Criterion (AIC), and the Bayesian Information Criterion (BIC). The objective is to compare the forecasted values to known data.
+
+8. **Model Selection**: Lastly, based on the various accuracy metrics, we'll identify the most fitting model for our dataset.
+
+By following these steps, we aim to provide a comprehensive analysis and a reliable forecast of the FFD for the next four years.
+
+```{r warning=FALSE}
+FFD_series <- read_csv("C:/Users/Rakshit Chandna/OneDrive/Desktop/DataMain/Forecasting/FFD.csv")
+head(FFD_series)
+```
+
+The dataset captures annual environmental measurements spanning various years. For each year, represented as a double (dbl) type, five metrics are documented: Temperature, Rainfall, Radiation, Relative Humidity (all as double types), and FFD. For instance, in 1984, the recorded temperature was approximately 18.71°C, with a rainfall measurement of roughly 2.49 units, radiation at 14.87 units, relative humidity at 54.65%, and an FFD value of 314. Similar data points are presented for subsequent years, providing insights into the yearly environmental changes.
+
+```{r}
+task2_covariate <- read_csv("C:/Users/Rakshit Chandna/OneDrive/Desktop/DataMain/Forecasting/Covariate x-values for Task 2.csv")
+print(task2_covariate)
+```
+
+The dataset provides a yearly breakdown from 2015 to 2018 of various environmental metrics. The "Year" column is a double data type, indicating the year of the observation. The "Temperature" column, also a double, gives the average temperature for that year. "Rainfall" provides the annual rainfall measurements, "Radiation" details the average radiation levels, and "RelHumidity" shows the average relative humidity percentage for each respective year. Notably, there are two rows with missing data across all columns at the end of the dataset.
+
+## Checking Class
+
+```{r}
+# For FFD Series
+class(FFD_series)
+```
+
+```{r}
+# For Covariate series
+class(task2_covariate)
+```
+
+## Checking Missing Values
+
+```{r}
+colSums(is.na(FFD_series))
+```
+
+```{r}
+colSums(is.na(task2_covariate))
+```
+
+Based on the results shown, the FFD_series doesn't have any missing values, but there are two absent values in the task2_covariate series. We'll proceed to eliminate these missing entries from the task2_covariate dataset.
+
+
+### Removing NA values
+
+```{r}
+# Removing NA values
+
+task2_covariate <- na.omit(task2_covariate)
+
+# Checking missing values have been removed
+
+head(task2_covariate)
+```
+
+We have now successfully removed the missing values form the covariate dataset.
+
+# Converting Data Variables into Time series
+
+```{r}
+# Converting 'FFD_series' to time series and storing in 'climate'
+
+climate <- ts(FFD_series[,2:6], start = c(1984,1), frequency = 1)
+
+# Converting Temperature from 'FFD_series' to time series and storing in 'temperature'
+
+temperature <- ts(FFD_series$Temperature, start = c(1984,1), frequency = 1)
+
+
+# Converting Rainfall from 'FFD_series' to time series and storing in 'rainfall'
+
+rainfall <- ts(FFD_series$Rainfall, start = c(1984,1), frequency = 1)
+
+
+# Converting Radiation from 'FFD_series' to time series and storing in 'radiation'
+
+radiation <- ts(FFD_series$Radiation, start = c(1984,1), frequency = 1)
+
+
+# Converting RelHumidity from 'FFD_series' to time series and storing in 'humidity'
+
+humidity <- ts(FFD_series$RelHumidity, start = c(1984,1), frequency = 1)
+
+
+# Converting FFD from 'FFD_series' to time series and storing in 'FFD'
+
+FFD <- ts(FFD_series$FFD, start = c(1984,1), frequency = 1)
+```
+
+
+####  Checking class to confirm conversion
+
+```{r}
+class(climate)
+```
+
+
+```{r}
+cbind(c(class(temperature),class(rainfall),class(humidity),class(radiation),class(FFD)))
+```
+
+The transformation was completed effectively. The FFD_series data was transitioned into a time series format. Each of the five attributes within the FFD_series (excluding Year) was transformed into separate series, each containing yearly time-series data for temperature, radiation, rainfall, humidity, and FFD respectively.
+
+# Data Exploration and Visualisation
+
+We will now plot the converted Time Series Data for each of the five series variables and interpret their important characteristics using the **5 Bullet Points**:
+
+- **Trend**
+- **Seasonality**
+- **Changing Variance**
+- **Behavior**
+- **Intervention Point**
+
+## Time-series plot of FFD series
+
+```{r, fig.cap= "Figure 19"}
+plot(FFD, ylab='FFD', xlab='Time period', type='o', col='blue', main = 'Figure 19: Time-series plot of change in yearly  values of FFD')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** and **Downward Trend** with successive Auto regressive points and moving average overall from the year 1960 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a Downward Trend present in the series.
+- **Seasonality** - There is very moderate level of repeating patterns (seasonality) can be seen in the graph from year 1960-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1985 and 2003.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden peak point in year 2003 observed in the series.
+
+
+
+## Time-series plot of Temperature series
+
+```{r, fig.cap= "Figure 20"}
+plot(temperature, ylab='Temperature', xlab='Time period', type='o', col='red', main = 'Figure 20: Time-series plot of change in yearly  values of temperature')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** and **Upward Trend** with successive Auto regressive points and moving average overall from the year 1960 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a Upward Trend present in the series.
+- **Seasonality** - There is very moderate level of repeating patterns (seasonality) can be seen in the graph from year 1960-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1985 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point in year 1992 observed in the series.
+
+
+
+## Time-series plot of Rainfall series
+
+```{r, fig.cap= "Figure 21"}
+plot(rainfall, ylab='Rainfall', xlab='Time period', type='o', col='green', main = 'Figure 21: Time-series plot of change in yearly  values of rainfall')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** with successive Auto regressive points and moving average overall from the year 1960 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a nearly No Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 1960-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1995 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point in year 1996 observed in the series.
+
+
+## Time-series plot of Radiation series
+
+```{r, fig.cap= "Figure 22"}
+plot(radiation, ylab='Radiation', xlab='Time period', type='o', col='darkmagenta', main = 'Figure 22: Time-series plot of change in yearly  values of radiation')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** with successive Auto regressive points and moving average overall from the year 1960 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a nearly No Trend present in the series.
+- **Seasonality** - There is moderate level of repeating patterns (seasonality) can be seen in the graph from year 1960-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1992 and 2007.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point in year 1992 observed in the series.
+
+
+## Time-series plot of Humidity series
+
+```{r, fig.cap= "Figure 23"}
+plot(humidity, ylab='Humidity', xlab='Time period', type='o', col='black', main = 'Figure 23: Time-series plot of change in yearly  values of humidity')
+```
+
+From the above plot, the Time Series plot shows us high level of **Seasonality** and **Downward Trend** with successive Auto regressive points and moving average overall from the year 1960 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a Downward Trend present in the series.
+- **Seasonality** - There is moderate level of repeating patterns (seasonality) can be seen in the graph from year 1960-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1987 and 2011.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point in year 2007 observed in the series.
+
+
+## Scaled Time-series plot of data set Climate
+
+```{r, fig.cap= "Figure 24"}
+# Scaling climate data
+
+scaled2  = scale(climate)
+
+# Plotting time-series plot containing all the five series together
+
+plot(scaled2, plot.type = "s", col = c("blue", "red","green","darkmagenta","black"), main = "Figure 24: Time Series plot of  scaled climate",xlab="Time period")
+legend("topleft",lty=1,cex=0.65, text.width = 5, col=c("blue","red", "green", "darkmagenta","black"), c("FFD", "Temperature", "Rainfall", "Radiation","Humidity"))
+
+```
+
+Each of the five series appears to be interconnected and doesn't exhibit any seasonal tendencies. To further validate these visual observations, we'll proceed to compute the correlation among these series mathematically.
+
+# Estimating correlation for climate series
+
+```{r}
+
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+# Calculating correlation
+
+res1<-rcorr(as.matrix(climate))
+flattenCorrMatrix(res1$r, res1$P)
+```
+
+From the findings presented, it's evident that there is a notable negative correlation between rainfall and radiation, registering at -0.58. Similarly, there's a significant positive correlation of 0.52 between temperature and radiation. However, other variables don't show any substantial correlation with FFD. These observations imply that **univariate** models would be more suitable for our predictions, given the lack of substantial inter-variable correlations to account for when forecasting FFD.
+
+
+# Check for Non-stationarity
+
+## Plotting ACF and PACF for FFD series
+
+```{r, fig.cap= "Figure 25"}
+# Plotting ACF and PACF 
+
+par(mfrow=c(1,2)) 
+acf(FFD, lag.max = 48, main = "Figure 25: FFD ACF ")
+pacf(FFD, lag.max = 48, main = "Figure 25: FFD PACF")
+```
+
+In the ACF plot, we observe a slowly decaying pattern of both positive and negative lags, indicating a possible trend. Meanwhile, the PACF graph shows just one significant lag, implying that the FFD series might not be stationary.
+
+## Plotting ACF and PACF for Temperature
+
+```{r, fig.cap= "Figure 26"}
+par(mfrow=c(1,2)) 
+acf(temperature, lag.max = 48, main = "Figure 26: Temperature ACF ")
+pacf(temperature, lag.max = 48, main = "Figure 26: Temperature PACF")
+```
+
+From the ACF plot, we observe a slowly decaying pattern of both positive and negative lags, indicating a possible trend. Meanwhile, the PACF graph shows just one significant lag, implying that the Temperature series could be non-stationary.
+
+## Plotting ACF and PACF for Rainfall
+
+```{r, fig.cap= "Figure 27"}
+par(mfrow=c(1,2)) 
+acf(rainfall, lag.max = 48, main = "Figure 27: Rainfall ACF ")
+pacf(rainfall, lag.max = 48, main = "Figure 27: Rainfall PACF")
+```
+
+From the above ACF plot, there is not any slowly decaying pattern while in PACF, no lag is significant which suggests series is stationary.
+
+## Plotting ACF and PACF for Humidity 
+
+```{r, fig.cap= "Figure 28"}
+par(mfrow=c(1,2)) 
+acf(humidity, lag.max = 48, main = "Figure 28: Humidity ACF ")
+pacf(humidity, lag.max = 48, main = "Figure 28: Humidity PACF")
+```
+
+From the above ACF plot, there is not any slowly decaying pattern while in ACF, no first lag is significant in PACF which suggests series is stationary.
+
+## Plotting ACF and PACF for Radiation  
+
+```{r, fig.cap= "Figure 29"}
+par(mfrow=c(1,2)) 
+acf(radiation, lag.max = 48, main = "Figure 29: Radiation  ACF ")
+pacf(radiation, lag.max = 48, main = "Figure 29: Radiation  PACF")
+```
+
+From the above ACF plot, there is a any slowly decaying pattern while in ACF and first lag is significant in PACF which suggests series is non-stationary.
+
+From the ACF and PACF diagrams, we observe that the FFD, temperature, and radiation series are not stationary. In contrast, the rainfall and humidity series appear to be stationary. To confirm these observations, we will perform ADF tests in the subsequent steps.
+
+
+# Performing Stationarity Check
+
+## Utilizing Augmented Dickey-Fuller Test
+
+###  ADF test on FFD series
+
+```{r}
+adf.test(FFD, k=ar(FFD)$order)
+```
+
+From the above ADF test of FFD series, we can observe that the p-values is grater than 5% level of significance indicating that the series is Non-stationary.
+
+###  ADF test on Temperature series
+
+```{r}
+adf.test(temperature, k=ar(temperature)$order)
+```
+
+From the above ADF test of Temperature series, we can observe that the p-values is grater than 5% level of significance indicating that the series is Non-stationary.
+
+###  ADF test on Rainfall series
+
+```{r}
+adf.test(rainfall, k=ar(rainfall)$order)
+```
+
+From the above ADF test of Temperature series, we can observe that the p-values is less than 5% level of significance indicating that the series is Stationary.
+
+###  ADF test on Humidity series
+
+```{r}
+adf.test(humidity, k=ar(humidity)$order)
+```
+
+From the above ADF test of Humidity series, we can observe that the p-values is less than 5% level of significance indicating that the series is Stationary.
+
+###  ADF test on Radiation series
+
+```{r}
+adf.test(radiation, k=ar(radiation)$order)
+```
+
+From the above ADF test of Radiation series, we can observe that the p-values is grater than 5% level of significance indicating that the series is Non-stationary.
+
+
+# Transformation of Non-Stationary series
+
+Based on earlier findings, FFD, temperature, and radiation are non-stationary series. To advance with the analysis, these series need to be transformed into stationary ones. Therefore, we will apply successive orders of **differencing**, such as first, second, third, and so on, to each of these series until they achieve stationarity.
+
+## Transformation of FFD series
+
+#### Applying first order differencing on FFD series
+
+```{r, fig.cap= "Figure 30"}
+FFDdiff = diff(FFD)
+plot(FFDdiff,ylab='FFD',xlab='Time period', col="blue", main = "Figure 30: Time series plot of first differenced FFD")
+```
+
+After applying the first difference to the FFD series, it appears to be stationary. To validate this observation, we'll employ the ADF test on the series.
+
+## ADF Test on first order differenced FFD
+
+```{r}
+adf.test(FFDdiff)
+```
+
+We can observe that the series is now completely Stationary as the p-values is less than 5% level of significance.
+
+
+
+## Transformation of Temperature  series
+
+#### Applying first order differencing on Temperature series
+
+```{r, fig.cap= "Figure 31"}
+temperaturediff = diff(temperature)
+plot(temperaturediff,ylab='Temperature',xlab='Time period', col="red", main = "Figure 31: Time series plot of first differenced temperature series")
+```
+
+After applying the first difference to the Temperature series, it appears to be stationary. To validate this observation, we'll employ the ADF test on the series.
+
+#### ADF Test on first order differenced Temperature
+
+```{r}
+adf.test(temperaturediff)
+```
+
+The above results show, there was significant change in the temperature series but its still not completely stationary. Let’s apply second order differencing to it.
+
+#### Applying second order differencing on Temperature series
+
+```{r, fig.cap= "Figure 32"}
+temperaturediff2 = diff(temperaturediff)
+plot(temperaturediff2,ylab='Temperature',xlab='Time period', col="red", main = "Figure 32: Time series plot of second differenced temperature series")
+```
+
+#### ADF Test on second order differenced Temperature series
+
+```{r}
+adf.test(temperaturediff2)
+```
+
+The series is still not stationary. Let’s apply third order differencing and check it again
+
+#### Applying thord order differencing on Temperature series
+
+```{r, fig.cap= "Figure 33"}
+temperaturediff3 = diff(temperaturediff2)
+plot(temperaturediff3,ylab='Temperature',xlab='Time period', col="red", main = "Figure 33: Time series plot of third order differenced temperature series")
+```
+
+The series has changed from the second differenced series especially from the initial & end points. Let’s check whether it has achieved stationarity or not.
+
+#### Performing ADF test on third differenced temperature series
+
+```{r}
+adf.test(temperaturediff3)
+```
+
+The temperature series achieved stationarity after differencing it three times, as indicated by a p-value below the 5% significance threshold.
+
+
+## Transformation of Radiation series
+
+#### Applying first order differencing on Radiation series
+
+```{r, fig.cap= "Figure 34"}
+radiationdiff = diff(radiation)
+plot(radiationdiff,ylab='Radiation',xlab='Time period', col="darkmagenta", main = "Figure 34: Time series plot of first differenced radiation series")
+```
+
+After applying the first difference to the Radiation series, it appears to be stationary. To validate this observation, we'll employ the ADF test on the series.
+
+#### ADF Test on first order differenced Radiation
+
+```{r}
+adf.test(radiationdiff)
+```
+
+The above ADF test indicates that the series is still Non-stationary as the p-values is greater than 5% level of significance.Hence we will apply second differencing to the series.
+
+#### Applying second order differencing on Radiation series
+
+```{r, fig.cap= "Figure 35"}
+radiationdiff2 = diff(radiationdiff)
+plot(radiationdiff2,ylab='Radiation',xlab='Time period', col="darkmagenta", main = "Figure 35: Time series plot of second differenced radiation series")
+```
+
+#### ADF Test on second order differenced Radiation
+
+```{r}
+adf.test(radiationdiff2)
+```
+
+The series is still non-stationary as the p-values is greater han 5% level. Let’s apply third order differencing.
+
+#### Applying third order differencing on Radiation series
+
+```{r, fig.cap= "Figure 36"}
+radiationdiff3 = diff(radiationdiff2)
+plot(radiationdiff3 ,ylab='Radiation',xlab='Time period', col="darkmagenta", main = "Figure 36: Time series plot of third differenced radiation series")
+```
+
+The series now more looks stationary, lets check the ADF test for check.
+
+#### ADF Test on third order differenced Radiation
+
+```{r}
+adf.test(radiationdiff3)
+```
+
+We can now finally observe that the series is now Stationary as the ADF test confirms the p-value lesser than 5% level of significance.
+
+
+Hence, as a result, after implementing the second, third, and fourth order differencing, all three series (FFD, temperature, and radiation) have been effectively converted to a stationary state.Hence we can now proceed with modelling of the series.
+
+
+# Time Series Regression Models
+
+We will try fitting distributed lag models, which incorporate an independent explanatory series and its lags to assist explain the general variance and correlation structure in our dependent series, in an effort to identify a good model for predicting Climate series.
+
+To determine the model's finite lag length, we create a procedure that computes measurements of accuracy like AIC/BIC and MASE for models with various lag lengths, then select the model with the lowest values.
+
+
+## Distributed Lag Model
+
+The Distributed Lag Model from the Regression models describes that the effect of an independent variable on the dependent variables occurs over the time. Therefore we require to build distributed lag models to reduce the multi-collinearity and dependency for each variable. Some of the most important used methods are:
+
+- **Finite Distributed Lag Model**
+- **Polynomial Distributed Lag Model**
+- **Koyck Distributed Lag Model**
+- **Autoregressive Distributed Lag Model**
+
+
+## Finite Distributed Lag Model
+
+To identify the optimal model using finite DLM, we'll examine each of the four series (excluding FFD) individually as predictors and implement the finite DLM based on the suitable lag duration.
+
+We will determine the appropriate lag length for the model, where temperature serves as the predictor and FFD as the outcome variable. This is done using the **finiteDLMauto** function, which compares based on AIC, BIC, and MASE scores for lags between 1 to 10. The model with the smallest AIC, BIC, and MASE values will be selected.
+
+
+```{r warning=FALSE}
+# Changing the column names of data-set
+
+colnames(climate) <- c("temperature","rainfall","radiation","humidity","FFD")
+
+# Performing finiteDLMauto to calculate best model based on AIC, BIC and MASE scores
+
+finiteDLMauto( x=as.vector(temperature), y= as.vector(FFD), q.min = 1, q.max = 10, model.type="dlm", error.type = "AIC",trace=TRUE)
+```
+
+Based on the results shown, the optimal lag-length is determined to be 10, as suggested by the **AIC, BIC, and MASE** metrics. The function **finiteDLMauto** was utilized to examine the lag length by substituting all other predictor variables. For every predictor variable in our dataset, the best lag length was consistently found to be **10**. Therefore, a lag length of 10 will be adopted for all the finite DLMs.
+
+### Modelling finite DLMs with several possible combinations
+
+```{r}
+# Fitting a finite DLM model using temperature as the predictor variable
+model.temperature = dlm(x=as.vector(temperature), y=as.vector(FFD), q=10)
+
+# Fitting a finite DLM model using rainfall as the predictor variable
+model.rainfall = dlm(x=as.vector(rainfall), y=as.vector(FFD), q=10)
+
+# Fitting a finite DLM model using humidity as the predictor variable
+model.humidity = dlm(x=as.vector(humidity), y=as.vector(FFD), q=10)
+
+# Fitting a finite DLM model using radiation as the predictor variable
+model.radiation = dlm(x=as.vector(radiation), y=as.vector(FFD), q=10)
+
+# Fitting a finite DLM model using FFD and temperature with no intercept
+model.nointercept = dlm(formula = FFD ~ temperature - 1, data=data.frame(climate), q=10)
+
+# Fitting a finite DLM model using FFD and rainfall with no intercept
+model.nointercept2 = dlm(formula = FFD ~ rainfall - 1, data=data.frame(climate), q=10)
+
+# Fitting a finite DLM model using FFD and humidity with no intercept
+model.nointercept3 = dlm(formula = FFD ~ humidity - 1, data=data.frame(climate), q=10)
+
+# Fitting a finite DLM model using FFD and radiation with no intercept
+model.nointercept4 = dlm(formula = FFD ~ radiation - 1, data=data.frame(climate), q=10)
+```
+
+We have fitted the possible finite dlm models above. Lets evaluate them based on AIC, BIC and MASE scores.
+
+### Evaluating Model based on AIC scores
+
+```{r}
+sort.score(AIC(model.temperature$model,model.rainfall$model,model.humidity$model,model.radiation$model,model.nointercept$model,model.nointercept2$model,model.nointercept3$model,model.nointercept4$model), score = "aic")
+```
+
+
+### Evaluating Model based on BIC scores
+
+```{r}
+sort.score(BIC(model.temperature$model,model.rainfall$model,model.humidity$model,model.radiation$model,model.nointercept$model,model.nointercept2$model,model.nointercept3$model,model.nointercept4$model), score = "bic")
+```
+
+### Evaluating Model based on MASE scores
+
+```{r}
+sort.score(MASE(model.temperature$model,model.rainfall$model,model.humidity$model,model.radiation$model,model.nointercept$model,model.nointercept2$model,model.nointercept3$model,model.nointercept4$model), score = "mase")
+```
+
+From the outputs of above result, the best model based on AIC and BIC score is "**model.humidity**" whereas the best model based on MASE scores is "**model.radiation**" at $0.5096$. Hence we will further analyse the model with least MASE scores.
+
+## Analysing Best Finite DLM model
+
+```{r}
+model.finite2 <- dlm(x=as.vector(radiation), y=as.vector(FFD), q=10)
+summary(model.finite2)
+```
+
+From the outputs of **finite_best2** model and its summary :
+
+- The **AIC** and **BIC** scores of the model have been reported $200.65$ and $214.23$.
+- The adjusted R-squared value reported was $0.36$ which is very poor.
+- Very few of the coefficients are significant.
+- The F-statistic is reported at $2.051$ on 11 and 9 Degrees of Freedom.
+
+## Residual Analysis of the model "finite_best2"
+
+```{r}
+checkresiduals(model.finite2$model,test=FALSE)
+```
+
+From the outputs of Model "finite_best2" residuals :
+
+- The residuals appear to be distributed randomly without exhibiting a specific trend.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual does not seems to follow any trend overall.
+
+So, we can conclude that the model "finite_best2" is a decent model with a appropriate composition of residuals and a MASE score of $0.5096$
+
+
+
+# Polynomial Distributed Lag Model
+
+Having observed that the finite DLM model provided a satisfactory fit, our next step is to explore the potential of a polynomial model. However, prior to fitting the polynomial model, we'll utilize the `finiteDLMauto` function to determine the optimal lag length, basing our decision on the AIC, BIC, and MASE values of the fitted models.
+
+```{r}
+# Computing lag length based on AIC, BIC & MASE
+
+finiteDLMauto(x = as.vector(temperature), y = as.vector(FFD), q.min = 1, q.max = 10, k.order = 2,
+              model.type = "poly", error.type ="AIC", trace = TRUE)
+```
+
+Based on the presented results, the optimal lag-length is determined to be 10, as evidenced by the AIC, BIC, and MASE values. By employing the finiteDLMauto function, we assessed different predictors to ascertain the appropriate lag length. It was observed that the best lag length for all predictor variables in the dataset is 10. Consequently, for every polynomial DLM, we will use a lag length of 10 and set the order to 2.
+
+### Fitting all combination of polynomial models
+
+```{r}
+# Fitting a polynomial DLM model using temperature as the predictor variable
+model.temperaturepoly = polyDlm(x = as.vector(temperature), y = as.vector(FFD), q = 10, k = 2)
+
+# Fitting a polynomial DLM model using rainfall as the predictor variable
+model.rainfallpoly = polyDlm(x = as.vector(rainfall), y = as.vector(FFD), q = 10, k = 2)
+
+# Fitting a polynomial DLM model using humidity as the predictor variable
+model.humiditypoly = polyDlm(x = as.vector(humidity), y = as.vector(FFD), q = 10, k = 2)
+
+# Fitting a polynomial DLM model using radiation as the predictor variable
+model.radiationpoly = polyDlm(x = as.vector(radiation), y = as.vector(FFD), q = 10, k = 2)
+```
+
+We have successfully fitted all the possible models uning polynomial method. We will now check the Accuracy scores of each model and sort them out.
+
+### Evaluating based on AIC, BIC and MASE scores
+
+```{r}
+# AIC scores
+sort.score(AIC(model.temperaturepoly$model,model.rainfallpoly$model,model.humiditypoly$model,model.radiationpoly$model), score = "aic")
+```
+
+```{r}
+# BIC scores
+sort.score(BIC(model.temperaturepoly$model,model.rainfallpoly$model,model.humiditypoly$model,model.radiationpoly$model), score = "bic")
+```
+
+
+```{r}
+# MASE scores
+sort.score(MASE(model.temperaturepoly$model,model.rainfallpoly$model,model.humiditypoly$model,model.radiationpoly$model), score = "mase")
+```
+
+From the results of above scores, the best model turns out is "**model.temperaturepoly**". Hence we will further analyze and summarise the model.
+
+## Analyzing and summarising model
+
+```{r}
+summary(model.temperaturepoly$model)
+```
+
+From the outputs of **model.temperaturepoly** model and its summary :
+
+- The p-values is reported at $0.077$ which is greater than 5% level of significance.
+- The adjusted R-squared value reported was $0.20$ which is very poor.
+- Very few of the coefficients are significant.
+- The F-statistic is reported at $2.71$ on 3 and 17 Degrees of Freedom.
+
+### Residual Analyisi
+
+```{r}
+checkresiduals(model.temperaturepoly$model,test=FALSE)
+```
+
+From the outputs of Model "**model.temperaturepoly**" residuals :
+
+- The residuals appear to be distributed randomly without exhibiting a specific trend.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lag present in the ACF.
+- The time-series plot of residual does not seems to follow any trend overall.
+
+So, we can conclude that the model "**model.temperaturepoly**" is a decent model with a appropriate composition of residuals and a MASE score of $0.726$.
+
+## Forecasting the **model.temperaturepoly**
+
+```{r}
+# Creating point predictions utilizing the task2_covariate dataset for radiation.
+
+forecastFFDpoint <- dLagM::forecast(model.temperaturepoly,x = c(14.60,14.56,14.79,14.79) ,h = 4)
+
+forecastFFDpoint <- round(forecastFFDpoint$forecasts,2)
+
+# Generating prediction intervals
+
+forecastFFDinterval <- forecast(model = model.temperaturepoly, x = c(14.60,14.56,14.79,14.79) , 
+                h = 4 , interval = TRUE)
+
+round(forecastFFDinterval$forecasts,2)
+```
+
+
+### Plotting the Forecast
+
+```{r, fig.cap= "Figure 37"}
+plot(ts(c(as.vector(FFD),forecastFFDpoint),start=1984),type="o",col="black", ylab="FFD_forecasted",
+main="Figure 37: FFD four year ahead predicted values from 2015-2018")
+lines(ts(c(as.vector(FFD),forecastFFDpoint),start=1984),type="o",col="darkmagenta")
+legend("topleft", lty = 1,pch=1,text.width=11, col = c("black","darkmagenta"), c("Data","model.radiationpoly"))
+```
+
+The displayed graph presents a four-year forecast for FFD based on the model.radiationpoly. The predictions appear trustworthy since the model aligns seamlessly with the FFD dataset, and the forecasted intervals are suitably narrow, indicating a solid model performance.
+
+
+# Koyck Distributed Lag Model
+
+### Fitting Koyck models with all possible combinations
+
+```{r}
+# Fitting a Koyck DLM model using temperature as the predictor variable
+model.temperaturekoyck = koyckDlm(x = as.vector(temperature), y = as.vector(FFD))
+
+# Fitting a Koyck DLM model using rainfall as the predictor variable
+model.rainfallkoyck = koyckDlm(x = as.vector(rainfall), y = as.vector(FFD))
+
+# Fitting a Koyck DLM model using humidity as the predictor variable
+model.humiditykoyck = koyckDlm(x = as.vector(humidity), y = as.vector(FFD))
+
+# Fitting a Koyck DLM model using radiation as the predictor variable
+model.radiationkoyck = koyckDlm(x = as.vector(radiation), y = as.vector(FFD))
+```
+
+
+Above we have fitted several models based on koyck method.
+
+### Evaluating base on MASE scores
+
+```{r}
+# Sorting based on  MASE scores
+MASE_koyck <- MASE(model.temperaturekoyck,model.rainfallkoyck,model.humiditykoyck,model.radiationkoyck)
+
+
+# Arranging in ascending order
+
+arrange(MASE_koyck,MASE)
+```
+
+### Analyzing and summarising the best model **model.temperaturekoyck**
+
+```{r}
+summary(model.temperaturekoyck,diagnostics = TRUE)
+```
+
+From the outputs of **model.temperaturekoyck** model and its summary :
+
+- The p-values is reported at $0.301$ which is much greater than 5% level of significance.
+- The adjusted R-squared value reported was $0.03508$ which is very poor.
+- None of the coefficients are significant.
+- The Wu-Hausman test is reported at $0.30$ on 1 and 26 Degrees of Freedom.
+
+### Residual analysis of model **model.temperaturekoyck**
+
+```{r}
+checkresiduals(model.temperaturekoyck$model)
+```
+
+From the outputs of Model "**model.temperaturekoyck**" residuals :
+
+- The p-value from the Ljung-Box test was reported at $0.99$ which is much greater than 5% level of significance.
+- The residuals appear to be distributed randomly without exhibiting a specific trend.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lag present in the ACF.
+- The Histogram is unevenly distributed overall.
+- The time-series plot of residual does not seems to follow any trend overall.
+
+So, we can conclude that the model "**model.temperaturekoyck**" is a decent model with a appropriate composition of residuals and a MASE score of $0.845$.
+
+## Forecasting **model.temperaturekoyck**
+
+Let's produce the forecast intervals and visualize the predictions for the upcoming four years.
+
+```{r}
+# Producing point predictions utilizing the radiation values from task2_covariate
+forecastFFDpoint2 <- dLagM::forecast(model.temperaturekoyck,x = c(14.60,14.56,14.79,14.79) ,h = 4)
+
+forecastFFDpoint2 <- round(forecastFFDpoint2$forecasts,2)
+
+# Generating prediction intervals of forecast
+
+forecastFFDinterval2 <- forecast(model = model.temperaturekoyck, x = c(14.60,14.56,14.79,14.79) , h = 4 ,interval = TRUE)
+
+round(forecastFFDinterval2$forecasts,2)
+```
+
+The predictions derived from the Koyck model aren't as satisfactory as those from the poly model. According to the Koyck model, the projected FFD values for the upcoming four years will hover around 371-385, showing a bit fluctuation. Moreover, the prediction intervals for the Koyck model are broader compared to the Poly model as it is capturing the **intervention peak from the previous data**.
+
+
+### Plotting the forecast
+
+```{r, fig.cap= "Figure 38"}
+plot(ts(c(as.vector(FFD),forecastFFDpoint2),start=1984),type="o",col="black", ylab="FFD_forecasted",
+main="Figure 38: FFD four year ahead predicted values from 2015-2018")
+lines(ts(c(as.vector(FFD),forecastFFDpoint2),start=1984),type="o",col="navy")
+legend("topright", lty = 1,pch=1,text.width=11, col = c("black","navy"), c("Data","model.temperaturekoyck"))
+```
+
+The Koyck model aligns seamlessly with the historical FFD data. According to the model's projections, over the upcoming four years, FFD values will remain relatively stable, hovering around 371-385. Given the intervention point peak in prediction intervals, the forecasted values appear to be trustworthy.
+
+
+
+## Autoregressive Distributed Lag Model
+
+Calculating Autoregressive DLMs over various lag duration and AR process levels through a loop, then selecting the model that has the minimal information criterion for fitting.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model.autoreg = ardlDlm(x= as.vector(temperature),y=as.vector(FFD), p = i , q = j )
+    cat("p =", i, "q =", j, "AIC =", AIC(model.autoreg$model), "BIC =", BIC(model.autoreg$model), "MASE =", MASE(model.autoreg)$MASE, "\n")
+  }
+}
+```
+
+Based on the provided results, the ARDL(5,5) model stands out as the optimal choice, as evidenced by its AIC, BIC, and MASE metrics. The finiteDLMauto function was employed to evaluate other predictors and determine the best p & q values. The analysis revealed that the ARDL(5,5) configuration consistently delivered the best performance for all predictor variables. Hence, for all autoregressive DLMs, we will use the (5,5) values for p & q.
+
+## Fitting Autoregressive model with serveral possible combinations
+
+```{r}
+model.temperatureardl = ardlDlm(x=as.vector(temperature), y=as.vector(FFD), p = 5, q = 5)
+model.rainfallardl = ardlDlm(x=as.vector(rainfall), y=as.vector(FFD), p = 5, q = 5)
+model.humidityardl = ardlDlm(x=as.vector(humidity), y=as.vector(FFD), p = 5, q = 5)
+model.radiationardl = ardlDlm(x=as.vector(radiation), y=as.vector(FFD), p = 5, q = 5)
+```
+
+
+### Evaluating Model based on AIC, BIC and MASE scores
+
+```{r}
+# AIC scores
+sort.score(AIC(model.temperatureardl$model,model.rainfallardl$model,model.humidityardl$model,model.radiationardl$model), score = "aic")
+```
+
+
+```{r}
+# BIC scores
+sort.score(BIC(model.temperatureardl$model,model.rainfallardl$model,model.humidityardl$model,model.radiationardl$model), score = "bic")
+```
+
+
+```{r}
+# MASE scores
+Maseardl <- MASE(model.temperatureardl,model.rainfallardl,model.humidityardl,model.radiationardl)
+
+arrange(Maseardl,MASE)
+```
+
+Based on the AIC and BIC metrics, the model using only radiation as a predictor emerges as the top choice. However, when considering the MASE metric, the model with rainfall as the predictor takes precedence. We'll delve deeper into the latter model since it's grounded on the MASE evaluation.
+
+## Analyzing and summarising **model.rainfallardl**
+
+```{r}
+summary(model.rainfallardl)
+```
+
+Here we have chosen **model.rainfallardl** instead of **model.temperatureardl** due to better significant coefficients and Adjusted R-squared value.
+
+From the outputs of **model.rainfallardl** model and its summary :
+
+- The p-values is reported at $0.301$ which is much greater than 5% level of significance.
+- The adjusted R-squared value reported was $0.03508$ which is very poor.
+- None of the coefficients are significant.
+- The Wu-Hausman test is reported at $0.30$ on 1 and 26 Degrees of Freedom.
+
+### Residual Analysis
+
+```{r}
+checkresiduals(model.rainfallardl$model, test=FALSE)
+```
+
+From the outputs of Model "**model.rainfallardl**" residuals :
+
+- The residuals appear to be distributed randomly with exhibiting a downward trend.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lag present in the ACF.
+- The Histogram is unevenly distributed overall.
+- The time-series plot of residual does seems to follow a downward trend overall.
+
+So, we can conclude that the model "**model.rainfallardl**" is a decent model with a appropriate composition of residuals and a MASE score of $0.845$.
+
+
+## Forecasting the model **model.rainfallardl**
+
+```{r}
+# Producing point predictions utilizing the radiation values from task2_covariate
+forecastFFDpoint_3 <- dLagM::forecast(model.rainfall,x = c(1.60,1.56,1.79,1.69) ,h = 4)
+
+forecastFFDpoint_3 <- round(forecastFFDpoint_3$forecasts,2)
+
+# Generating prediction intervals of forecast
+
+#forecastFFDinterval_3 <- forecast(model = model.rainfall, x = c(14.60,14.56,14.79,14.69,14.4,14.6,14.7,14.2,14.83) , h = 4 ,interval = TRUE)
+
+#round(forecastFFDinterval_3$forecasts,2)
+```
+
+### Plotting the Forecast
+
+```{r, fig.cap= "Figure 39"}
+plot(ts(c(as.vector(FFD),forecastFFDpoint_3),start=1984),type="o",col="black", ylab="FFD_forecasted",
+main="Figure 39: FFD four year ahead predicted values from 2015-2018")
+lines(ts(c(as.vector(FFD),forecastFFDpoint_3),start=1984),type="o",col="green")
+legend("topleft", lty = 1,pch=1,text.width=11, col = c("black","green"), c("Data","model.rainfallardl"))
+```
+
+The model **model.rainfallardl** aligns well with the FFD values spanning from 1984 to 2014. As a result, forecasts produced by the ARDL model can be deemed trustworthy and precise, even if the projected high variations for the upcoming four years appear somewhat improbable.
+
+# Modelling using Dynamic Linear Models
+
+Dynamic Linear Models are frequently favored for prediction tasks. Given that the FFD series doesn't exhibit any trend or seasonal patterns, our focus will be on fitting models with singular independent variables, both with and without an intercept. Let's proceed to construct several dynlm models.
+
+```{r}
+# Fitting univariate models with FFD
+
+dynamicmodel1 <-dynlm(FFD~ L(FFD , k = 1 ))
+dynamicmodel2 <-dynlm(FFD~ L(FFD , k = 1 )+ L(FFD , k = 2 ))
+dynamicmodel3 <-dynlm(FFD~ L(FFD , k = 1 )+ L(FFD , k = 2 )+L(FFD , k = 3 ))
+
+
+
+# Fitting models with temperature as independent variable
+
+temperaturedynlm <-dynlm(FFD ~ temperature + L(FFD, k=1))
+temperaturedynlm1 <-dynlm(FFD ~ temperature + L(FFD, k=2))
+temperaturedynlm2 <-dynlm(FFD ~ temperature)
+temperaturedynlm3 <-dynlm(FFD ~ temperature - 1)
+temperaturedynlm4 <-dynlm(FFD ~ temperature + L(temperature, k=1))
+temperaturedynlm5 <-dynlm(FFD ~ temperature + L(temperature, k=2))
+temperaturedynlm6 <-dynlm(FFD ~ temperature + L(FFD, k=3))
+temperaturedynlm7 <-dynlm(FFD ~ temperature + L(temperature, k=3))
+
+# Fitting models with rainfall as independent variable
+
+rainfalldynlm <-dynlm(FFD ~ rainfall + L(FFD, k=1))
+rainfalldynlm1 <-dynlm(FFD ~ rainfall + L(FFD, k=2))
+rainfalldynlm2 <-dynlm(FFD ~ rainfall)
+rainfalldynlm3 <-dynlm(FFD ~ rainfall - 1)
+rainfalldynlm4 <-dynlm(FFD ~ rainfall + L(rainfall, k=1))
+rainfalldynlm5 <-dynlm(FFD ~ rainfall + L(rainfall, k=2))
+rainfalldynlm6 <-dynlm(FFD ~ rainfall + L(rainfall, k=3))
+rainfalldynlm7 <-dynlm(FFD ~ rainfall + L(FFD, k=3))
+
+
+# Fitting models with humidity as independent variable
+
+humiditydynlm <- dynlm(FFD ~ humidity + L(FFD, k=1))
+humiditydynlm1 <- dynlm(FFD ~ humidity + L(FFD, k=2))
+humiditydynlm2 <- dynlm(FFD ~ humidity)
+humiditydynlm3 <- dynlm(FFD ~ humidity - 1)
+humiditydynlm4 <- dynlm(FFD ~ humidity + L(humidity, k=1))
+humiditydynlm5 <- dynlm(FFD ~ humidity + L(humidity, k=2))
+humiditydynlm6 <- dynlm(FFD ~ humidity + L(humidity, k=3))
+humiditydynlm7 <- dynlm(FFD ~ humidity + L(FFD, k=3))
+
+# Fitting models with radiation as independent variable
+
+radiationdynlm <- dynlm(FFD ~ radiation + L(FFD, k=1))
+radiationdynlm1 <- dynlm(FFD ~ radiation + L(FFD, k=2))
+radiationdynlm2 <- dynlm(FFD ~ radiation)
+radiationdynlm3 <- dynlm(FFD ~ radiation - 1)
+radiationdynlm4 <- dynlm(FFD ~ radiation + L(radiation, k=1))
+radiationdynlm5 <- dynlm(FFD ~ radiation + L(radiation, k=2))
+radiationdynlm6 <- dynlm(FFD ~ radiation + L(radiation, k=3))
+radiationdynlm7 <- dynlm(FFD ~ radiation + L(FFD, k=3))
+```
+
+
+### Evaluating models based on MASE scores
+
+```{r}
+dynlm_MASE2 <- MASE(lm(temperaturedynlm), lm(temperaturedynlm1), lm(temperaturedynlm2), lm(temperaturedynlm3), lm(temperaturedynlm4),lm(temperaturedynlm5),lm(temperaturedynlm6),lm(temperaturedynlm7),lm(rainfalldynlm),lm(rainfalldynlm1),lm(rainfalldynlm2),lm(rainfalldynlm3),
+lm(rainfalldynlm4),lm(rainfalldynlm5),lm(rainfalldynlm6),lm(rainfalldynlm7),lm(humiditydynlm),lm(humiditydynlm1),lm(humiditydynlm2),lm(humiditydynlm3),lm(humiditydynlm4),lm(humiditydynlm5),lm(humiditydynlm6),lm(humiditydynlm7),lm(radiationdynlm),lm(radiationdynlm1),lm(radiationdynlm2),lm(radiationdynlm3),lm(radiationdynlm4),lm(radiationdynlm5),lm(radiationdynlm6),lm(radiationdynlm7),lm(dynamicmodel1),lm(dynamicmodel2),lm(dynamicmodel3))
+
+arrange(dynlm_MASE2,MASE)
+```
+
+## Analysing and summarising best model **dynamicmodel3**
+
+```{r}
+summary(dynamicmodel3)
+```
+
+Here we have chosen **dynamicmodel3** instead of **temperaturedynlm1** due to better significant coefficients and adjusted R-squared value. 
+
+From the outputs of **model.rainfallardl** model and its summary :
+
+- The p-values is reported at $0.301$ which is much greater than 5% level of significance.
+- The adjusted R-squared value reported was $0.03508$ which is very poor.
+- None of the coefficients are significant.
+- The Wu-Hausman test is reported at $0.30$ on 1 and 26 Degrees of Freedom.
+
+
+### Residual Analysis
+
+```{r}
+checkresiduals(dynamicmodel3)
+```
+
+From the outputs of Model "**dynamicmodel3**" residuals :
+
+- The residuals appear to be distributed randomly with exhibiting a downward trend.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lag present in the ACF.
+- The Histogram is unevenly distributed overall.
+- The time-series plot of residual does seems to follow a downward trend overall.
+
+So, we can conclude that the model "**dynamicmodel3**" is a decent model with a appropriate composition of residuals and a MASE score of $0.818$.
+
+
+## Fitting the model **dynamicmodel3**
+
+```{r, fig.cap= "Figure 40"}
+par(mfrow=c(1,1))
+plot(FFD,ylab='FFD',xlab='Year',main = "Figure 40: Fit with original FFD", col="blue")
+lines(dynamicmodel3$fitted.values,col="black")
+legend("topleft", lty = 1,pch=1,text.width=11, col = c("black","blue"), c("Data","dynamicmodel3"))
+```
+
+## Forecasting the model **dynamicmodel3**
+
+```{r, fig.cap= "Figure 41"}
+q = 4
+n = nrow(dynamicmodel3$model)
+FFD.frc = array(NA , (n + q))
+FFD.frc[1:n] = FFD[4:length(FFD)]
+
+for(i in 1:q){
+data.new =c(1,FFD.frc[n-1+i],FFD.frc[n-2+i],FFD.frc[n-3+i])
+FFD.frc[n+i] = as.vector(dynamicmodel3$coefficients) %*% data.new
+}
+
+plot(FFD,xlim=c(1984,2018),
+ylab='RBO',xlab='Year',
+main = "Figure-41: Predicted FFD values using dynamicmodel3")
+lines(ts(FFD.frc[(n+1):(n+q)],start=c(2015)),col="blue")
+```
+
+```{r}
+# Analusing point forecast
+
+FFD.frc[(n+1):(n+q)]
+```
+
+Based on the plotted predictions and our calculations, it's evident that the forecasted values for the upcoming four years will remain relatively stable, ranging between 300-305. However, given that the dynamic model wasn't a good fit for the original data series, we should approach these predicted values with caution, as they may not be trustworthy.
+
+
+# Modelling using Exponential Smoothing
+
+The FFD series lacks both trend and seasonality, limiting our options to specific models when employing exponential smoothing techniques.
+
+## Fitting basic ETS model
+
+```{r}
+# Computing values of alpha and beta
+
+model.FFDses <-ses(FFD, initial="simple", h=4)
+```
+
+## Analyzing and Summarising model
+
+```{r}
+summary(model.FFDses)
+```
+
+## Residual analysis of model 
+
+```{r}
+checkresiduals(model.FFDses)
+```
+
+Based on the summary and residual visualizations of the model.FFDses model, we can derive the following observations:
+
+- The model has a MASE value of $0.954609$. Other accuracy metrics include an RMSE of $25.0236$ and a MAPE of $5.96345$.
+  
+- The model's smoothing parameter, alpha, is set to 0.
+
+- The Ljung-Box test yields a p-value above the 5% significance level, suggesting that there's no autocorrelation within the residuals.
+
+- A single significant lag observed in the ACF plot suggests some degree of autocorrelation in the residuals.
+
+- The residuals appear to be scattered without any discernible trend or pattern.
+
+- There appear to be issues with normality in the model, as the residuals don't seem to adhere to a normal distribution.
+
+- The model's forecasts are provided, accompanied by both 80% and 95% confidence intervals.
+
+## Forecasting the model
+
+Plotting the model with forecast
+
+```{r, fig.cap= "Figure 42", warning=FALSE}
+plot(FFD, fcol = "black", main = "Figure 42: FFD series with four years ahead forecasts", ylab = "FFD")
+lines(fitted(model.FFDses), col = "green")
+lines(model.FFDses$mean, col = "green", lwd = 2)
+legend("topleft", lty = 1, col = c("black", "green"), c("Data", "FFDses"))
+```
+
+We will now fit the forecasted values to the model.
+
+```{r}
+# Value adding
+frc <- model.FFDses$mean
+ub <- model.FFDses$upper[,2]
+lb <- model.FFDses$lower[,2]
+forecasts <- ts.intersect(ts(lb, start = c(2015,1), frequency = 1), ts(frc,start = c(2015,1), frequency = 1), ts(ub,start = c(2015,1), frequency = 1))
+colnames(forecasts) <- c("Lower bound", "Point forecast", "Upper bound")
+
+forecasts
+```
+
+From the above result, we can interpret that the basic Exponential Smoothing model doesn't align well with the observed and projected values. It produces a flat trend and offers nearly uniform predictions for the upcoming four years. Therefore, this model isn't suitable for forecasting FFD values over the next four years.
+
+# Modelling with State Space Models
+
+While the model doesn't exhibit any trend or seasonality, we can explore models with both multiplicative and additive errors. Let's proceed to fit these models and evaluate their performance.
+
+## Fitting ETS(M,N,N) with multiplicative type
+
+
+```{r}
+FFDets1 <- ets(FFD, model="MNN")
+```
+
+## Analysing and Summarising the model
+
+```{r}
+summary(FFDets1)
+```
+
+## Residual analysis 
+
+
+```{r}
+checkresiduals(FFDets1)
+```
+
+Based on the summary and residual visualizations of FFDets1, we can infer the following:
+
+- The model's MASE score is $0.875936$, while other accuracy indicators like AIC, AICc, and BIC hover between 262 and 266. These metrics suggest that the model's performance is comparable to prior models, making it an adequate but not exceptional fit.
+
+- The model uses a smoothing parameter with alpha set to 1e-04.
+
+- The Ljung-Box test yields a p-value above the 5% significance threshold, implying that the residuals does not exhibit serial correlation.
+
+- Residual distribution appears to be random, but the ACF plot highlights one significant lag, reinforcing the findings from the Ljung-Box test.
+
+- The model displays issues with normality, as the residuals don't align well with a normal distribution.
+
+## Fitting ETS(A,N,N) with additive type
+
+## Analysing and Summarising the model
+
+```{r}
+FFDets2 <- ets(FFD, model="ANN")
+summary(FFDets2)
+```
+
+## Residual Analysis 
+
+```{r}
+checkresiduals(FFDets2)
+```
+
+Based on the summary and residual analysis of FFDets2, we can deduce the following:
+
+- The model's MASE score is $0.875961$, and its other accuracy metrics like AIC, AICc, and BIC fall between 310 and 314. These values mirror those from the previously fitted model, suggesting that while this model is reasonable, it is not optimal.
+
+- The model utilizes a smoothing parameter with alpha = 1e-04.
+
+- The Ljung-Box test indicates a p-value above the 5% threshold, suggesting the absence of serial correlation in the residuals.
+
+- Residuals seem to be dispersed randomly, but the ACF plot displays a significant lag, aligning with the Ljung-Box test findings.
+
+- There appears to be an issue with normality as the residuals don't follow a normal distribution.
+
+In conclusion, both ETS models have an identical MASE value of $0.875961$. However, when compared to other models, **this value isn't the lowest**, implying that the model may not be the best choice for predicting FFD.
+
+## Forecasting with respect to FFDets1 & FFDets2
+
+Plotting the forecast model.
+
+```{r , fig.cap= "Figure 43",warning=FALSE}
+plot(FFD, fcol = "black", main = "Figure 43: FFD series with four years ahead forecasts", ylab = "FFD")
+lines(fitted(FFDets1), col = "green")
+lines(FFDets1$mean, col = "green", lwd = 2)
+lines(fitted(FFDets2), col = "darkmagenta")
+lines(FFDets2$mean, col = "darkmagenta", lwd = 2)
+legend("topleft", lty = 1, col = c("black", "green","darkmagenta"), c("Data", "FFDets1","FFDets2"))
+```
+
+```{r}
+# Applied values to the models
+frc <- model.FFDses$mean
+ub <- model.FFDses$upper[,2]
+lb <- model.FFDses$lower[,2]
+forecasts <- ts.intersect(ts(lb, start = c(2015,1), frequency = 1), ts(frc,start = c(2015,1), frequency = 1), ts(ub,start = c(2015,1), frequency = 1))
+colnames(forecasts) <- c("Lower bound", "Point forecast", "Upper bound")
+
+forecasts
+```
+
+Hence we can interpret that, while the MASE value for the two ETS models is identical at $0.875961$, it doesn't fare the best when compared to other models. Furthermore, the predictions made by the ETS models are off the mark, suggesting that they don't align well with the data. As a result, these models are unsuitable for accurately forecasting FFD.
+
+# Overview of Task 2 Summary Table
+
+Let's evaluate all the previously constructed models and determine the optimal one using the MASE score.
+
+```{r}
+# Summarising the data models
+overview_table2 <- data.frame(Model = c("model.finite2","model.radiationpoly","model.radiationkoyck","model.rainfallardl","dynamicmodel3","model.FFDses","model.FFDets1","model.FFDets2"), MASE= c(0.2319041,0.6355363,0.7540611,0.4143799,0.6549642,0.7446097,0.7584965,0.7584965))
+
+
+# Comparing the models wrt MASE score
+
+arrange(overview_table2,MASE)
+```
+
+
+Based on the provided summary, the **model.finite2**, which uses **radiation** as its predictor, stands out as the optimal model for predicting FFD values over the next four years, as indicated by its MASE.
+
+# Conclusion
+
+The analysis for Task 2 was completed successfully on the five series contained in the FFD.csv file. Given that these series have a yearly frequency (less than 2), they couldn't be broken down for a more detailed analysis. These series were scrutinized, and various modeling techniques, including **DLM, koyck, polyDLM, dynlm, ES, and state space models**, were employed to establish univariate models, each considering a single climate indicator. Using accuracy metrics such as **R2, MASE, AIC, and BIC**, the most effective model from each method was identified for forecasting purposes. **Radiation** , **rainfall** and **temperature** emerged as significant climate drivers in the top-performing models. 
+
+The **finite, poly, koyck, ARDL, and dynlm** methods yielded reliable predictions, whereas the optimal models determined via Exponential smoothing and ETS were deemed unsuitable for the FFD series. Out of all the evaluated models, model.finite2, which uses radiation as its predictor, stood out in terms of **MASE score, R2 value, F-test**, and the **forecasts** produced for the upcoming four years.
+
+
+# Task 3
+
+# Part(a)- Time series analysis & forecast of RBO series
+
+# Data Description
+
+Between 1983 and 2014, Hudson & Keatley (2021) analyzed the influence of prolonged climate variations in Victoria on the blooming sequence resemblance of 81 flora species. The yearly blooming sequence was determined using the Rank-based Order similarity metric. They gauged shifts in this sequence by comparing each year's flowering sequence to that of 1983, using the Relative Blooming Order (RBO) method. In this system, the species that bloom the earliest in a given year receive a ranking of 1, while the last to bloom is ranked 81.
+
+The dataset 'RBO.csv' contains five time series, rooted in 1983 being the benchmark year for flowering order evaluations. These series encapsulate the RBO evaluations of the 81 plant species highlighted in Hudson & Keatley's study, alongside averaged annual climatic data spanning from 1984 to 2014. Each of these series has 31 data points. Besides the RBO metric, the other variables in the dataset include temperature, rainfall, radiation, and relative humidity.
+
+# Objectives and Methodology
+
+The primary goal of Task 3 is to delve into the analysis of RBO and provide forecasts for the next three years. In sub-section (b), we will employ dynamic models to adjust the series to account for Australia's drought phase and subsequently forecast for the subsequent three years. The procedure will unfold as follows:
+
+- Initially, we will undergo essential data preprocessing for all five series. The '**RBO.csv**' file will be scrutinized for any anomalies, missing or unique values, which will then be appropriately addressed. Every series within '**RBO.csv**' will be transformed into a time-series format, showcasing annual data for all series, setting the stage for a comprehensive time series analysis.
+
+- We will also introduce the **covariate** file, which will play a role in the forecasting process.
+
+- Subsequently, to grasp the inherent patterns and attributes of each time series, we will visualize them through individual and collective time series plots. Stationarity checks will be conducted on all five series using ACF, PACF plots, and Dicker-Fuller Unit tests.
+
+- A correlation matrix will be employed to ascertain the inter-series relationships.
+
+- Additionally, we will fit various distributed lag models to these series.
+
+- Based on insights from prior analyses, different **DLMs** and **dynlms** will be adapted to the series.
+
+- Evaluation metrics like R squared, AIC, BIC, and MASE will guide the selection of the most apt model or set of models to forecast the RBO values for the upcoming **three** years.
+
+- For sub-section (b), to capture the impact of the drought phase on RBO, **dynamic linear models (dynlm)** will be employed. This involves transforming the series to reflect the effects of that period before fitting the *dynlm* models.
+
+In conclusion, we will forecast the RBO values for the subsequent **three** years.
+
+# Importing the dataset RBO
+
+```{r}
+RBO_series <- read_csv("C:/Users/Rakshit Chandna/OneDrive/Desktop/DataMain/Forecasting/RBO.csv",show_col_types = FALSE)
+head(RBO_series)
+```
+
+# Importing Covariate File
+
+```{r}
+task3_covariate <- read_csv("C:/Users/Rakshit Chandna/OneDrive/Desktop/DataMain/Forecasting/Covariate x-values for Task 3.csv")
+head(task3_covariate)
+```
+
+### Checking class for both data series
+
+```{r}
+class(RBO_series)
+```
+
+```{r}
+class(task3_covariate)
+```
+
+## Removing extra columns from RBO_series
+
+```{r}
+RBO_series <- RBO_series[,1:6]
+
+head(RBO_series)
+```
+
+### Checking for missing and special values
+
+```{r}
+colSums(is.na(RBO_series))
+```
+
+```{r}
+colSums(is.na(task3_covariate))
+```
+
+We observe that there are few missing values in covariate series, hence we will deal with them.
+
+### Removing NA values in task3_covariate
+
+
+```{r}
+task3_covariate <- na.omit(task3_covariate)
+colSums(is.na(task3_covariate))
+```
+
+We have now removed all the missing values and our data is ready to be converted in to time series format.
+
+# Converting each variable to time series
+
+```{r}
+# Converting 'RBO_series' to time series and storing in 'climate2'
+
+climate2 <- ts(RBO_series[,2:6], start = c(1984,1), frequency = 1)
+
+# Converting Temperature from 'RBO_series' to time series and storing in 'temptr'
+
+temptr <- ts(RBO_series$Temperature, start = c(1984,1), frequency = 1)
+
+
+# Converting Rainfall from 'RBO_series' to time series and storing in 'rain'
+
+rain <- ts(RBO_series$Rainfall, start = c(1984,1), frequency = 1)
+
+# Converting Radiation from 'RBO_series' to time series and storing in 'radtn'
+
+radtn <- ts(RBO_series$Radiation, start = c(1984,1), frequency = 1)
+
+
+# Converting RelHumidity from 'RBO_series' to time series and storing in 'humid'
+
+humid <- ts(RBO_series$RelHumidity, start = c(1984,1), frequency = 1)
+
+
+# Converting RBO from 'RBO_series' to time series and storing in 'RBO'
+
+RBO <- ts(RBO_series$RBO, start = c(1984,1), frequency = 1)
+
+
+# Checking conversion has been successfully done for each series
+
+class(climate2)
+```
+
+
+```{r}
+cbind(c(class(temptr),class(rain),class(humid),class(radtn),class(RBO)))
+```
+
+# Data Exploration and Visualisation
+
+We will now plot the converted Time Series Data for each of the five series variables and interpret their important characteristics using the **5 Bullet Points**:
+
+- **Trend**
+- **Seasonality**
+- **Changing Variance**
+- **Behavior**
+- **Intervention Point**
+
+## Time-series plot of RBO series
+
+```{r, fig.cap= "Figure 44"}
+plot(RBO, ylab='RBO', xlab='Time period', type='o', col='blue', main = 'Figure 44: Time-series plot of change in yearly  values of RBO')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** and **Downward Trend** with successive Auto regressive points and moving average overall from the year 1984 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a Downward Trend present in the series.
+- **Seasonality** - There is very moderate level of repeating patterns (seasonality) can be seen in the graph from year 1960-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1995 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point (drop) in year 1996 observed in the series.
+
+
+## Time-series plot of Temperature(temptr)
+
+```{r, fig.cap= "Figure 45"}
+plot(temptr, ylab='Temperature(temptr)', xlab='Time period', type='o', col='red', main = 'Figure 45: Time-series plot of change in yearly values of temperature')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** and **Upward Trend** with successive Auto regressive points and moving average overall from the year 1984 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is a Upward Trend present in the series.
+- **Seasonality** - There is very moderate level of repeating patterns (seasonality) can be seen in the graph from year 1984-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1995 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point (drop) in year 1992 observed in the series.
+
+## Time-series plot of Rainfall(rain)
+
+```{r, fig.cap= "Figure 46"}
+plot(rain, ylab='Rainfall(rain)', xlab='Time period', type='o', col='green', main = 'Figure 46: Time-series plot of change in yearly values of rainfall')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** and **Nearly No Trend** with successive Auto regressive points and moving average overall from the year 1984 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly No Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 1984-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1995 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point (drop) in year 1996 observed in the series.
+
+## Time-series plot of Radiation(radtn)
+
+```{r, fig.cap= "Figure 47"}
+plot(radtn, ylab='Radiation(radtn)', xlab='Time period', type='o', col='darkmagenta', main = 'Figure 47: Time-series plot of change in yearly values of radiation')
+```
+
+From the above plot, the Time Series plot shows us moderate level of **Seasonality** and **Nearly No Trend** with successive Auto regressive points and moving average overall from the year 1984 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly No Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 1984-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1992 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point (drop) in year 1992 observed in the series.
+
+
+## Time-series plot of Humidity(humid)
+
+```{r, fig.cap= "Figure 48"}
+plot(humid, ylab='Humidity(humid)', xlab='Time period', type='o', col='black', main = 'Figure 48: Time-series plot of change in yearly values of humidity')
+```
+
+
+From the above plot, the Time Series plot shows us high level of **Seasonality** and **Nearly No Trend** with successive Auto regressive points and moving average overall from the year 1984 to 2014 respectively.
+
+Checking **5 bullet points**:
+
+- **Trend** - There is nearly No Trend present in the series.
+- **Seasonality** - There is very high level of repeating patterns (seasonality) can be seen in the graph from year 1984-2014
+- **Changing Variance** - There is a significant level of changing variance which is also in repeating patterns, can be seen if we look at the years 1992 and 2005.
+- **Behavior** - A mixed Auto regressive and Moving average behavior can be seen in the graph.
+- **Intervention point** - There is a sudden change point (drop) in year 1992 observed in the series.
+
+## Time-series plot of data set climate2 (scaled)
+
+```{r, fig.cap= "Figure 49"}
+# Scaling the data climate2
+
+scaled3  = scale(climate2)
+
+# Plotting time-series plot containing all the five series together
+
+plot(scaled3, plot.type = "s", col = c("blue", "red","green","darkmagenta","black"), main = "Figure 49: Time Series plot of  scaled climate2",xlab="Time period")
+legend("bottomright",lty=1,cex=0.55, text.width = 5, col=c("blue","red", "green", "darkmagenta","black"), c("RBO", "Temperature", "Rainfall", "Radiation","Humidity"))
+```
+
+The above five series appear to be interconnected and do not exhibit **seasonality**, though some display a discernible trend. Following this, we will quantitatively assess these visual observations by computing the correlation among the five series.
+
+## Estimating correlation for climate2
+
+```{r}
+# Calculating correlation
+corr2<-rcorr(as.matrix(climate2))
+flattenCorrMatrix(corr2$r, corr2$P)
+```
+
+Based on the provided results:
+
+1. There is a strong positive correlation between Temperature and Radiation humidity (0.51), whereas radiation and rainfall humidity exhibit a notable negative correlation (-0.581).
+
+2. Importantly, most of these correlations are statistically significant, with p-values below the 5% significance level, ensuring that the observed correlations are genuine and not due to random chance.
+
+4. The dependent variable, RBO, does not have a pronounced correlation with any of the four climate indicators. However, there are slight significant correlations with each of them.
+
+5. Specifically, RBO displays minor negative correlations with temperature , humidity and radiation, while it shows minor positive correlations with rainfall.
+
+## Check for non-stationarity
+
+## Plotting ACF and PACF for RBO
+
+```{r, fig.cap= "Figure 50"}
+par(mfrow=c(1,2)) 
+acf(RBO, main = "Figure 50.1: RBO  ACF ",lag.max = 48)
+pacf(RBO, main = "Figure 50.2: RBO  PACF",lag.max = 48)
+```
+
+From the above ACF plot, we can observe a slowly decaying pattern and we also have a first large lag in PACF which indicates the RBO series is Non-stationary.
+
+## Plotting ACF and PACF for temperature(temptr)
+```{r, fig.cap= "Figure 51"}
+par(mfrow=c(1,2)) 
+acf(temptr, main = "Figure 51.1: Temperature ACF ",lag.max = 48)
+pacf(temptr, main = "Figure 51.2: Temperature PACF",lag.max = 48)
+```
+
+From the above ACF plot, we can observe a slowly decaying pattern and we also have a first large lag in PACF which indicates the Temperature series is Non-stationary.
+
+## Plotting ACF and PACF for rainfall(rain)
+
+```{r, fig.cap= "Figure 52"}
+par(mfrow=c(1,2)) 
+acf(rain, main = "Figure 52.1: Rain ACF ",lag.max = 48)
+pacf(rain, main = "Figure 52.2: Rain PACF",lag.max = 48)
+```
+
+From the above ACF plot, we do not see a slowly decaying pattern and we also do not  have a first large lag in PACF which indicates the rainfall series is stationary.
+
+## Plotting ACF and PACF for humidity(humid)
+```{r, fig.cap= "Figure 53"}
+par(mfrow=c(1,2)) 
+acf(humid, main = "Figure 53.1: Humidity ACF ",lag.max = 48)
+pacf(humid, main = "Figure 53.2: Humidity PACF",lag.max = 48)
+```
+
+From the above ACF plot, we do not see a slowly decaying pattern and we also do not  have a first large lag in PACF which indicates the humidity series is stationary.
+
+## Plotting ACF and PACF for radiation(radtn)
+```{r, fig.cap= "Figure 54"}
+par(mfrow=c(1,2)) 
+acf(radtn, main = "Figure 54.1: Radiation ACF ",lag.max = 48)
+pacf(radtn, main = "Figure 54.2: Radiation PACF",lag.max = 48)
+```
+
+From the above ACF plot, we can observe a slowly decaying pattern and we also have a first large lag in PACF which indicates the Radiation series is Non-stationary.
+
+# Performing Stationarity Check
+
+From the above correlation plots , we have seen the few variables series were stationary while others were not. Hence we will perform stationarity check on these and identify the same.
+
+## Performing ADF test on RBO series
+
+```{r}
+adf.test(RBO, k=ar(RBO)$order)
+```
+
+From the above ADF test, we can observe that the p-value is greater than 5% level of significance, hence we say that the series is Non-stationary.
+
+## Performing ADF test on Temperature(temptr) series
+
+```{r}
+adf.test(temptr, k=ar(temptr)$order)
+```
+
+From the above ADF test, we can observe that the p-value is greater than 5% level of significance, hence we say that the series is Non-stationary.
+
+## Performing ADF test on rainfall(rain) serie
+
+```{r}
+adf.test(rain, k=ar(rain)$order)
+```
+
+From the above ADF test, we can observe that the p-value is less than 5% level of significance, hence we say that the series is Stationary.
+
+## Performing ADF test on humidity(humid) series
+
+```{r}
+adf.test(humid, k=ar(humid)$order)
+```
+
+From the above ADF test, we can observe that the p-value is less than 5% level of significance, hence we say that the series is Stationary.
+
+## Performing ADF test on radiation series
+
+```{r}
+adf.test(radtn, k=ar(radtn)$order)
+```
+
+From the above ADF test, we can observe that the p-value is greater than 5% level of significance, hence we say that the series is Non-stationary.
+
+# Transformation for series
+
+We will now transform the above **Non-stationary** series by performing orders of **differencing** upon them.
+
+## Performing Differencing
+
+### Differencing of RBO series
+
+```{r, fig.cap= "Figure 55"}
+RBO_diff = diff(RBO)
+plot(RBO_diff,ylab='RBO',xlab='Time period', col="blue", main = "Figure 55: Time series plot of first differenced RBO")
+```
+
+```{r}
+adf.test(RBO)
+```
+
+From the result of first differencing of series, we can still observe that the p-value is greater than 5% level of significance. Hence we will perform next order of differencing then.
+
+### Second Differencing of RBO series
+
+```{r, fig.cap= "Figure 56"}
+RBO_diff2 = diff(RBO_diff)
+plot(RBO_diff2,ylab='RBO',xlab='Time period', col="blue", main = "Figure 56: Time series plot of second differenced RBO")
+```
+
+```{r}
+adf.test(RBO_diff2)
+```
+
+From the result of second differencing of series, we can still observe that the p-value is greater than 5% level of significance. Hence we will perform next order of differencing then.
+
+### Third Differencing of RBO series
+
+```{r, fig.cap= "Figure 57"}
+RBO_diff3 = diff(RBO_diff2)
+plot(RBO_diff3,ylab='RBO',xlab='Time period', col="blue", main = "Figure 57: Time series plot of third differenced RBO")
+```
+
+```{r}
+adf.test(RBO_diff3)
+```
+
+After performing third differencing and ADF test on it, it is now clear that the series is Stationary as the p-value is now less than 5% level of significance.
+
+### Differencing of temperature(temptr) series
+
+```{r, fig.cap= "Figure 58"}
+temptrdiff = diff(temptr)
+plot(temptrdiff,ylab='Temperature',xlab='Time period', col="red", main = "Figure 58: Time series plot of first differenced temptr series")
+```
+
+```{r}
+adf.test(temptrdiff)
+```
+
+From the result of first differencing of series, we can still observe that the p-value is greater than 5% level of significance. Hence we will perform next order of differencing then.
+
+### Second Differencing of temperature(temptr) series
+
+```{r, fig.cap= "Figure 59"}
+temptrdiff2 = diff(temptrdiff)
+plot(temptrdiff2,ylab='Temperature',xlab='Time period', col="red", main = "Figure 59: Time series plot of second differenced temptr series")
+```
+
+```{r}
+adf.test(temptrdiff2)
+```
+
+From the result of second differencing of series, we can still observe that the p-value is greater than 5% level of significance. Hence we will perform next order of differencing then.
+
+
+### Third Differencing of temperature(temptr) series
+
+```{r, fig.cap= "Figure 60"}
+temptrdiff3 = diff(temptrdiff2)
+plot(temptrdiff3,ylab='Temperature',xlab='Time period', col="red", main = "Figure 60: Time series plot of third differenced temptr series")
+```
+
+```{r}
+adf.test(temptrdiff3)
+```
+
+After performing third differencing and ADF test on it, it is now clear that the series is Stationary as the p-value is now less than 5% level of significance.
+
+### Differencing of radiation(radtn) series
+
+```{r, fig.cap= "Figure 61"}
+radtndiff = diff(radtn)
+plot(radtndiff,ylab='Radiation',xlab='Time period', col="darkmagenta", main = "Figure 61: Time series plot of first differenced radtn series")
+```
+
+```{r}
+adf.test(radtndiff)
+```
+
+From the result of first differencing of series, we can still observe that the p-value is greater than 5% level of significance. Hence we will perform next order of differencing then.
+
+### Second Differencing of radiation(radtn) series
+
+```{r, fig.cap= "Figure 62"}
+radtndiff2 = diff(radtndiff)
+plot(radtndiff2,ylab='Radiation',xlab='Time period', col="darkmagenta", main = "Figure 62: Time series plot of second differenced radtn series")
+```
+
+```{r}
+adf.test(radtndiff2)
+```
+
+From the result of second differencing of series, we can still observe that the p-value is greater than 5% level of significance. Hence we will perform next order of differencing then.
+
+### Third Differencing of radiation(radtn) series
+
+```{r, fig.cap= "Figure 63"}
+radtndiff3 = diff(radtndiff2)
+plot(radtndiff3,ylab='Radiation',xlab='Time period', col="darkmagenta", main = "Figure 63: Time series plot of third differenced radtn series")
+```
+
+```{r}
+adf.test(radtndiff3)
+```
+
+After performing third differencing and ADF test on it, it is now clear that the series is Stationary as the p-value is now less than 5% level of significance.
+
+We have now successfully converted all the series into Stationary, we will now fit the models accordingly.
+
+# Time Series Regression Models
+
+We will try fitting distributed lag models, which incorporate an independent explanatory series and its lags to assist explain the general variance and correlation structure in our dependent series, in an effort to identify a good model for predicting Climate series.
+
+To determine the model's finite lag length, we create a procedure that computes measurements of accuracy like AIC/BIC and MASE for models with various lag lengths, then select the model with the lowest values.
+
+
+## Distributed Lag Model
+
+The Distributed Lag Model from the Regression models describes that the effect of an independent variable on the dependent variables occurs over the time. Therefore we require to build distributed lag models to reduce the multi-collinearity and dependency for each variable. Some of the most important used methods are:
+
+- **Finite Distributed Lag Model**
+- **Polynomial Distributed Lag Model**
+- **Koyck Distributed Lag Model**
+- **Autoregressive Distributed Lag Model**
+
+
+## Finite Distributed Lag Model
+
+To identify the optimal model using finite DLM, we'll examine each of the five series individually as predictors and implement the finite DLM based on the suitable lag duration.
+
+We will determine the appropriate lag length for the model, where temperature serves as the predictor and RBO as the outcome variable. This is done using the **finiteDLMauto** function, which compares based on AIC, BIC, and MASE scores for lags between 1 to 10. The model with the smallest AIC, BIC, and MASE values will be selected.
+
+```{r warning=FALSE}
+# Changing names of column in data climate2 for ease of writing code
+
+colnames(climate2) <- c("RBO","temptr","rain","radtn","humid")
+
+# Applying finiteDLMauto to calculate best model based on AIC, BIC and MASE values
+
+finiteDLMauto( x=as.vector(temptr), y= as.vector(RBO), q.min = 1, q.max = 10, model.type="dlm", error.type = "AIC",trace=TRUE)
+```
+
+
+## Modelling with several possible combinations
+
+We will now model several possible combinations of model and decide to go for the best one.
+
+```{r}
+model.rain = dlm(x=as.vector(rain), y=as.vector(RBO), q=1)
+model.temptr = dlm(x=as.vector(temptr), y=as.vector(RBO), q=1)
+model.humid = dlm(x=as.vector(humid), y=as.vector(RBO), q=1)
+model.radtn = dlm(x=as.vector(radtn), y=as.vector(RBO), q=1)
+model.nointercepttem = dlm(formula = RBO ~ temptr - 1, data=data.frame(climate2), q=1)
+model.nointerceptrain = dlm(formula = RBO ~ rain - 1, data=data.frame(climate2), q=1)
+model.nointercepthum = dlm(formula = RBO ~ humid - 1, data=data.frame(climate2), q=1)
+model.nointerceptrad = dlm(formula = RBO ~ radtn - 1, data=data.frame(climate2), q=1)
+
+```
+
+
+In order to go for the bes model we will evaluate them based on different scores such as AIC, BIC and MASE.
+
+### Evaluating based on AIC, BIC and MASE
+
+```{r}
+#  AIC scores
+sort.score(AIC(model.temptr$model,model.rain$model,model.humid$model,model.radtn$model,model.nointercepttem$model,model.nointerceptrain$model,model.nointercepthum$model,model.nointerceptrad$model), score = "aic")
+```
+
+```{r}
+#  BIC scores
+
+sort.score(BIC(model.temptr$model,model.rain$model,model.humid$model,model.radtn$model,model.nointercepttem$model,model.nointerceptrain$model,model.nointercepthum$model,model.nointerceptrad$model), score = "bic")
+```
+
+```{r}
+# MASE scores
+
+sort.score(MASE(model.temptr$model,model.rain$model,model.humid$model,model.radtn$model,model.nointercepttem$model,model.nointerceptrain$model,model.nointercepthum$model,model.nointerceptrad$model), score = "mase")
+```
+
+
+From the above results of MASE scores, we can observe that the best model turns out to be **model.rain**  with respect to the MASE. We will next analyse the model and do residual analysis.
+
+###  Analyzing and Summarising Model **model.rain** 
+
+```{r}
+summary(model.rain)
+```
+
+From the outputs of **model.rain** * model and its summary :
+
+- The values of AIC and BIC of the model are $-100.898$ $-95.293$.
+- The adjusted R-squared value reported was $0.1575 $ which is very poor.
+- Two out of three of the coefficients are significant.
+- The F-statistic test is reported at $3.71$ on 2 and 27 Degrees of Freedom.
+
+
+### Residual Analysis of model
+
+The **model.rain** will undergo a residual analysis using the checkresiduals function. Besides creating plots of the residuals, the Breusch-Godfrey test will also be executed. In this test, H0 suggests that the residuals don't exhibit serial correlation, whereas Ha suggests the presence of serial correlation in the residuals.
+
+```{r}
+checkresiduals(model.rain$model)
+```
+
+From the outputs of Model **model.rain** residuals :
+
+- The p-value from Breusch-Godfrey test was greater than significance level of $0.05$.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual seems to follow a downward trend overall.
+- The histogram does seems to follow normal distribution with outlier on both ends.
+
+So, we can conclude that the model **model.rain** is a decent model with an appropriate composition of residuals.
+
+
+
+##  Polynomial Distributed Lag Model
+
+The finite DLM model did not adequately fit the data, so we're considering a polynomial model instead. Before proceeding with the polynomial model, we'll determine the optimal lag length using `finiteDLMauto`, basing our decision on the AIC, BIC, and MASE values of the fitted models.
+
+#### Identifying lag length based on AIC, BIC & MASE
+
+```{r warning=FALSE}
+finiteDLMauto(x = as.vector(temptr), y = as.vector(RBO), q.min = 1, q.max = 10, k.order = 2,
+              model.type = "poly", error.type ="AIC", trace = TRUE)
+```
+
+According to the given results, the optimal lag-length is 1. However, a polynomial model cannot be constructed with a lag-length of 1. Consequently, we'll opt for the next best lag-length, which is 2, as guided by the AIC, BIC, and MASE metrics. By utilizing the finiteDLMauto function, we assessed alternate predictors to ascertain the appropriate lag length. For every predictor variable within the dataset, the ideal lag length was determined to be 1. Therefore, for all the polynomial DLMs, we'll adopt a lag length of 2 and an order of 2.
+
+### Fitting all possible combination of polynomial models
+
+```{r}
+# Model Fitting
+
+model.temptr_poly = polyDlm(x = as.vector(temptr), y = as.vector(RBO), q = 2, k = 2)
+
+model.rain_poly = polyDlm(x = as.vector(rain), y = as.vector(RBO), q = 2, k = 2)
+
+model.humid_poly = polyDlm(x = as.vector(humid), y = as.vector(RBO), q = 2, k = 2)
+
+model.radtn_poly = polyDlm(x = as.vector(radtn), y = as.vector(RBO), q = 2, k = 2)
+```
+
+We will now evaluate the above models based on AIC, BIC and MASE scores.
+
+### Evaluating based on AIC, BIC and MASE
+
+```{r}
+# AIC scores
+sort.score(AIC(model.temptr_poly$model,model.rain_poly$model,model.humid_poly$model,model.radtn_poly$model), score = "aic")
+```
+
+
+```{r}
+# BIC scores
+sort.score(BIC(model.temptr_poly$model,model.rain_poly$model,model.humid_poly$model,model.radtn_poly$model), score = "bic")
+```
+
+
+
+```{r}
+# MASE scores
+sort.score(MASE(model.temptr_poly$model,model.rain_poly$model,model.humid_poly$model,model.radtn_poly$model), score = "mase")
+```
+
+Using AIC, BIC, and MASE criteria, the model.rainpoly stands out as the optimal polynomial DLM. We should delve deeper into this model's analysis.
+
+### Analyzing and summarising **model.rain_poly**
+
+```{r}
+summary(model.rain_poly$model)
+```
+
+From the outputs of **model.rain_poly** model and its summary :
+
+- The p-value is reported at $0.0399$ which is less than 5% level of significance.
+- The adjusted R-squared value reported was $0.1918$ which is very poor.
+- Two out of four of the coefficients are significant.
+- The F-statistic test is reported at $3.21$ on 3 and 25 Degrees of Freedom.
+
+### Residual Analysis of **model.rain_poly**
+
+```{r}
+checkresiduals(model.rain_poly$model)
+```
+
+From the outputs of Model **model.rain_poly** residuals :
+
+- The p-value from Breusch-Godfrey test was greater than significance level of $0.05$.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual seems to follow a downward trend overall.
+- The histogram does seems to follow normal distribution with outlier on both ends.
+
+So, we can conclude that the model **model.rain_poly** is a decent model with an appropriate composition of residuals.
+
+
+## Koyck Distributed Lag Model
+
+The polynomial DLMs did not produce a satisfactory model based on the R2 value. Let's explore fitting various koyck models that aren't reliant on any specific lag length.
+
+### Modelling several possible combinations
+
+```{r}
+# Koyck modelling
+model.temptr_koyck = koyckDlm(x = as.vector(temptr), y = as.vector(RBO))
+model.rain_koyck = koyckDlm(x = as.vector(rain), y = as.vector(RBO))
+model.humid_koyck = koyckDlm(x = as.vector(humid), y = as.vector(RBO))
+model.radtn_koyck = koyckDlm(x = as.vector(radtn), y = as.vector(RBO))
+```
+
+We now have done modelling for various possible models using koyck method.
+
+### Evaluating based on  MASE score
+
+```{r}
+# MASE scores
+MASE_koyck2 <- MASE(model.temptr_koyck,model.rain_koyck,model.humid_koyck,model.radtn_koyck)
+
+# Arranging in ascending order
+
+arrange(MASE_koyck2,MASE)
+```
+
+### Analyzing **model.temptr_koyck**
+
+```{r}
+summary(model.temptr_koyck,diagnostics = TRUE)
+```
+
+From the outputs of **model.temptr_koyck** model and its summary :
+
+- The p-value is reported at $0.01136$ which is less than 5% level of significance.
+- The adjusted R-squared value reported was $0.08891$ which is very poor.
+- One out of four of the coefficients is significant.
+- The Wu-Hausman test is reported at $4.63489$ on 1 and 26 Degrees of Freedom.
+
+
+```{r}
+checkresiduals(model.temptr_koyck$model)
+```
+
+From the outputs of Model **model.temptr_koyck** residuals :
+
+- The p-value from Breusch-Godfrey test was greater than significance level of $0.05$.
+- The ACF plot reveals that there is seasonality and correlation exist in residual due to significant lags present in the ACF.
+- The time-series plot of residual seems to follow a downward trend overall.
+- The histogram does seems to follow normal distribution with outlier on positive end.
+
+So, we can conclude that the model **model.temptr_koyck** is a decent model with an appropriate composition of residuals.
+
+## Autoregressive Distributed Lag Model
+
+Calculating autoregressive DLMs across various lag durations and AR process orders through iteration, and selecting the model with the minimum information criterion for fitting.
+
+```{r}
+for (i in 1:5){
+  for(j in 1:5){
+    model.autoreg = ardlDlm(x= as.vector(temptr),y=as.vector(RBO), p = i , q = j )
+    cat("p =", i, "q =", j, "AIC =", AIC(model.autoreg$model), "BIC =", BIC(model.autoreg$model), "MASE =", MASE(model.autoreg)$MASE, "\n")
+  }
+}
+```
+
+Based on the presented results, the ARDL(5,5) model emerges as the top performer according to the AIC, BIC, and MASE metrics. The **finiteDLMauto** function was employed to substitute other predictors to determine the best p & q values. It was observed that the ARDL(5,5) configuration consistently provided optimal results for every predictor variable. Therefore, for all the autoregressive DLMs, we will use p & q values of (5,5).
+
+### Creating Autoregressive Model with several possible combinations
+
+```{r}
+model.temptr_ardl = ardlDlm(x=as.vector(temptr), y=as.vector(RBO), p = 5, q = 5)
+model.rain_ardl = ardlDlm(x=as.vector(rain), y=as.vector(RBO), p = 5, q = 5)
+model.humid_ardl = ardlDlm(x=as.vector(humid), y=as.vector(RBO), p = 5, q = 5)
+model.radtn_ardl = ardlDlm(x=as.vector(radtn), y=as.vector(RBO), p = 5, q = 5)
+```
+
+## Evaluating based on AIC,BIC and MASE scores
+
+```{r}
+sort.score(AIC(model.temptr_ardl$model,model.rain_ardl$model,model.humid_ardl$model,model.radtn_ardl$model), score = "aic")
+```
+
+```{r}
+sort.score(BIC(model.temptr_ardl$model,model.rain_ardl$model,model.humid_ardl$model,model.radtn_ardl$model), score = "bic")
+```
+
+```{r}
+Maseardl2 <- MASE(model.temptr_ardl,model.rain_ardl,model.humid_ardl,model.radtn_ardl)
+
+arrange(Maseardl2,MASE)
+```
+
+
+
+## Analyzing **model.humid_ardl**
+
+```{r}
+summary(model.humid_ardl)
+```
+
+
+From the outputs of **model.humid_ardl** model and its summary :
+
+- The p-value is reported at $0.0381$ which is less than 5% level of significance.
+- The adjusted R-squared value reported was $0.4373$ which is descent.
+- Some of the coefficients of model are significant.
+- The F-statistic test is reported at $2.76$ on 11 and 14 Degrees of Freedom.
+
+### Residual Analysis of model.humid_ardl
+
+```{r}
+checkresiduals(model.humid_ardl$model,test = FALSE)
+```
+
+From the outputs of Model **model.humid_ardl** residuals :
+
+- The ACF plot reveals that there is no seasonality and correlation exist in residual due to no significant lags present in the ACF.
+- The time-series plot of residual seems to follow a downward trend overall.
+- The histogram does seems to follow normal distribution overall.
+
+So, we can conclude that the model **model.humid_ardl** is a decent model with an appropriate composition of residuals.
+
+### Analyzing **model.radtn_ardl**
+
+```{r}
+summary(model.radtn_ardl)
+```
+
+From the outputs of **model.radtn_ardl** model and its summary :
+
+- The p-value is reported at $0.0694$ which is greater than 5% level of significance.
+- The adjusted R-squared value reported was $0.3689$ which is descent.
+- Only one of the coefficient of model is significant.
+- The F-statistic test is reported at $2.32$ on 11 and 14 Degrees of Freedom.
+
+### Residual Analysis of **model.radtn_ardl**
+
+```{r}
+checkresiduals(model.radtn_ardl$model,test = FALSE)
+```
+
+From the outputs of Model **model.radtn_ardl** residuals :
+
+- The ACF plot reveals that there is no seasonality and correlation exist in residual due to no significant lags present in the ACF.
+- The time-series plot of residual seems to follow a downward trend overall.
+- The histogram does seems to follow normal distribution overall.
+
+So, we can conclude that the model **model.radtn_ardl** is a decent model with an appropriate composition of residuals.
+
+# Modelling using Dynamic Linear Models
+
+### Creating several possible combinations of Dynamic models
+
+```{r}
+# Fitting univariate models with RBO
+
+dynamic_model1 <- dynlm(RBO ~ L(RBO , k = 1 )+ trend(RBO))
+dynamic_model2 <- dynlm(RBO~ L(RBO , k = 2 )+ trend(RBO))
+dynamic_model3 <-dynlm(RBO~ L(RBO , k = 1 ))
+dynamic_model4 <-dynlm(RBO~ L(RBO , k = 1 )+ L(RBO , k = 2 ))
+dynamic_model5 <-dynlm(RBO~ L(RBO , k = 1 )+ L(RBO , k = 2 )+L(RBO , k = 3 )+trend(RBO))
+dynamic_model6 <-dynlm(RBO~ L(RBO , k = 1 )+ L(RBO , k = 2 )+L(RBO , k = 3 ) + L(RBO)+trend(RBO))
+
+# Fitting models with temptr as independent variable
+
+temptr_dynlm <-dynlm(RBO ~ temptr + L(RBO, k=1))
+temptr_dynlm1 <-dynlm(RBO ~ temptr + L(RBO, k=2))
+temptr_dynlm2 <-dynlm(RBO ~ temptr)
+temptr_dynlm3 <-dynlm(RBO ~ temptr - 1)
+temptr_dynlm4 <-dynlm(RBO ~ temptr + L(temptr, k=1))
+temptr_dynlm5 <-dynlm(RBO ~ temptr + L(temptr, k=2))
+temptr_dynlm6 <-dynlm(RBO ~ temptr + L(temptr, k=3))
+temptr_dynlm7 <-dynlm(RBO ~ temptr + L(RBO, k=3))
+
+# Fitting models with rain as independent variable
+
+raindynlm <-dynlm(RBO ~ rain + L(RBO, k=1))
+raindynlm1 <-dynlm(RBO ~ rain + L(RBO, k=2))
+raindynlm2 <-dynlm(RBO ~ rain)
+raindynlm3 <-dynlm(RBO ~ rain - 1)
+raindynlm4 <-dynlm(RBO ~ rain + L(rain, k=1))
+raindynlm5 <-dynlm(RBO ~ rain + L(rain, k=2))
+raindynlm6 <-dynlm(RBO ~ rain + L(RBO, k=3))
+raindynlm7 <-dynlm(RBO ~ rain + L(rain, k=3))
+
+# Fitting models with humid as independent variable
+
+humid_dynlm <- dynlm(RBO ~ humid + L(RBO, k=1))
+humid_dynlm1 <- dynlm(RBO ~ humid + L(RBO, k=2))
+humid_dynlm2 <- dynlm(RBO ~ humid)
+humid_dynlm3 <- dynlm(RBO ~ humid - 1)
+humid_dynlm4 <- dynlm(RBO ~ humid + L(humid, k=1))
+humid_dynlm5 <- dynlm(RBO ~ humid + L(humid, k=2))
+humid_dynlm6 <- dynlm(RBO ~ humid + L(RBO, k=3))
+humid_dynlm7 <- dynlm(RBO ~ humid + L(humid, k=3))
+
+# Fitting models with radtn as independent variable
+
+radtn_dynlm <- dynlm(RBO ~ radtn + L(RBO, k=1))
+radtn_dynlm1 <- dynlm(RBO ~ radtn + L(RBO, k=2))
+radtn_dynlm2 <- dynlm(RBO ~ radtn)
+radtn_dynlm3 <- dynlm(RBO ~ radtn - 1)
+radtn_dynlm4 <- dynlm(RBO ~ radtn + L(radtn, k=1))
+radtn_dynlm5 <- dynlm(RBO ~ radtn + L(radtn, k=2))
+radtn_dynlm6 <- dynlm(RBO ~ radtn + L(radtn, k=3))
+radtn_dynlm7 <- dynlm(RBO ~ radtn + L(RBO, k=3))
+```
+
+We have successfully fitted models above using dynamic linear method. We will now evaluate them based on MASE scores.
+
+### Evaluating models based on MASE
+
+```{r}
+dynlm_MASE3 <- MASE(lm(temptr_dynlm), lm(temptr_dynlm1), lm(temptr_dynlm2), lm(temptr_dynlm3), lm(temptr_dynlm4),lm(temptr_dynlm5),lm(temptr_dynlm6),lm(temptr_dynlm7),lm(raindynlm),lm(raindynlm1),lm(raindynlm2),lm(raindynlm3),
+lm(raindynlm4),lm(raindynlm5),lm(raindynlm6),lm(raindynlm7),lm(humid_dynlm),lm(humid_dynlm1),lm(humid_dynlm2),
+lm(humid_dynlm3),lm(humid_dynlm4),lm(humid_dynlm5),lm(humid_dynlm6),lm(humid_dynlm7),lm(radtn_dynlm),lm(radtn_dynlm1),lm(radtn_dynlm2),lm(radtn_dynlm3),lm(radtn_dynlm4),lm(radtn_dynlm5),lm(radtn_dynlm6),lm(radtn_dynlm7),lm(dynamic_model1),lm(dynamic_model2),lm(dynamic_model3),lm(dynamic_model4),lm(dynamic_model5))
+
+arrange(dynlm_MASE3,MASE)
+```
+
+From the above results, we can say that model **dynamic_model1** turns out to be the best with respect to the MASE scores.
+
+## Analyzing dynamic_model1 using summary & residual analysis
+
+```{r}
+summary(dynamic_model1)
+```
+
+From the outputs of **dynamic_model1** model and its summary :
+
+- The p-value is reported at $0.000718$ which is greater than 5% level of significance.
+- The adjusted R-squared value reported was $0.3717$ which is descent.
+- All of the coefficients of this model are significant.
+- The F-statistic test is reported at $9.579$ on 2 and 27 Degrees of Freedom.
+
+```{r}
+checkresiduals(dynamic_model1)
+```
+
+From the outputs of Model **dynamic_model1** residuals :
+
+- The p-values is reported at $0.432$ which is greater than 5% level of significance.
+- The ACF plot reveals that there is no seasonality and correlation exist in residual due to no significant lags present in the ACF.
+- The time-series plot of residual seems to follow a upward trend overall.
+- The histogram does seems to follow normal distribution overall.
+
+So, we can conclude that the model **model.radtn_ardl** is a decent model with an appropriate composition of residuals.
+
+# Overview of Task 3
+
+```{r}
+# Summarising table
+
+overview2 <- data.frame(Model = c("model.rain","model.nointercepthum","model.rain_poly","model.humid_koyck","model.temptr_ardl","model.radtn_ardl","dynamic_model1"), MASE= c(0.9417954,0.9918515,0.9993747,0.8400135,0.7335979,0.7145698,0.8252265))
+
+
+# Evaluating MASE score for all
+
+arrange(overview2,MASE)
+```
+
+According to the MASE metric, the top-performing models from all the DLM and dynamic linear techniques are ranked based on their MASE scores. Notably, the models from the ARDL method (namely **model.radtn_ardl** & **model.temptr_ardl**) yield the best MASE scores. We'll utilize these two models to forecast RBO for the upcoming **three** years.
+
+# Forecasting RBO series
+
+## Three years ahead values for both radiation and temperature
+
+```{r}
+# Employing Radiation
+task2_covariate[,4]
+```
+
+```{r}
+# Employing Temperature
+task2_covariate[,2]
+```
+
+## Calculating point predictions and confidence intervals for the **model.radtn_ardl**.
+
+```{r}
+# # Calculating the three-year ahead RBO using the initial three radiation values from task3_covariate.
+
+# Creating point forecasts
+
+forecast_RBO_point <- dLagM::forecast(model.radtn,x = c(14.60,14.56,14.79) ,h = 3)
+
+forecast_RBO_point <- round(forecast_RBO_point$forecasts,2)
+
+
+```
+
+## Calculating point predictions and confidence intervals for the **model.temptr_ardl**
+
+```{r}
+# # Calculating the three-year ahead RBO using the initial three temperature values from task3_covariate.
+
+# Creating point forecasts
+
+forecast_RBO_point2 <- dLagM::forecast(model.temptr,x = c(20.74,20.49,20.52) ,h = 3)
+
+forecast_RBO_point2 <- round(forecast_RBO_point2$forecasts,2)
+
+
+```
+
+## Plotting the Forecasted Model
+
+```{r, fig.cap= "Figure 64"}
+plot(ts(c(as.vector(RBO),forecast_RBO_point),start=1984),type="o",col="darkmagenta", ylab="RBO_forecasted",
+main="Figure 64: RBO three year ahead predicted values from 2015-2017")
+lines(ts(c(as.vector(RBO),forecast_RBO_point2),start=1984),type="o",col="darkorange2")
+lines(ts(as.vector(RBO),start=1984),col="black",type="o")
+legend("topright", lty = 1,pch=1,text.width=11, col = c("darkmagenta","darkorange2","black"), c("model.radtn_ardl","model.temptr_ardl","Data (RBO)"))
+```
+
+The forecasts provided by the two models show slight variances. According to the model.radtn_ardl, the RBO value is predicted to dip in 2015, only to rise in the subsequent two years. Conversely, the model.temptr_ardl suggests a consistent upward trajectory for the RBO values over the next three years. 
+
+Both models effectively captured the historical RBO data. Furthermore, the projections they offer can be considered trustworthy given the narrowness of their 95% prediction intervals. Summarizing, both ARDL models suggest that from 2015 to 2017, there will be a marked increase in RBO values, indicating a greater alignment in the timing of the first flowering events.
+
+# Task 3 Part(b)- Model Fitting for Drought affected RBO
+
+## Modelling the drough effect
+
+```{r}
+# Incorporating the impact of the drought that occurred in 1996 as a pulse effect.
+
+Y.t = RBO
+T = 13 # 13 years effect on the series
+S.t = 1*(seq(Y.t)>=T)
+S.t.1 =Lag(S.t,+1)
+
+
+# Fitting Dynamic linear models
+
+model1 =dynlm(Y.t~ L(Y.t , k = 1 )+S.t+ trend(Y.t))
+model2 =dynlm(Y.t~ L(Y.t , k = 2 )+S.t+ trend(Y.t))
+model3 =dynlm(Y.t~ L(Y.t , k = 1 )+S.t)
+model4 =dynlm(Y.t~ L(Y.t , k = 1 )+S.t+trend(Y.t))
+model5 =dynlm(Y.t~ L(Y.t , k = 1 )+ L(Y.t , k = 2 )+S.t+S.t.1)
+model6 =dynlm(Y.t~ L(Y.t , k = 1 )+ L(Y.t , k = 2 )+S.t.1)
+model7 = dynlm(Y.t~ L(Y.t , k = 1 )+ L(Y.t , k = 2 )+ L(Y.t , k = 3 )+S.t.1)
+model8 = dynlm(Y.t~ L(Y.t , k = 1 )+ L(Y.t , k = 2 )+L(Y.t , k = 3 )+S.t+S.t.1+ trend(Y.t))
+model9 = dynlm(Y.t~rain + L(Y.t , k = 1 ) + L(Y.t , k = 2 )+ S.t+ + S.t.1 + trend(Y.t))
+model10 = dynlm(Y.t~temptr + L(Y.t , k = 1 ) + L(Y.t , k = 2 )+ S.t+ + S.t.1 + trend(Y.t))
+model11 = dynlm(Y.t~radtn + L(Y.t , k = 1 ) + L(Y.t , k = 2 )+ S.t+ + S.t.1 + trend(Y.t))
+model12 = dynlm(Y.t~humid + L(Y.t , k = 1 ) + L(Y.t , k = 2 )+ S.t+ + S.t.1 + trend(Y.t))
+```
+
+
+## Evaluating models based on MASE
+
+```{r}
+dynlm_MASE5 <- MASE(lm(model1),lm(model2),lm(model3),lm(model4),lm(model5),lm(model6),lm(model7),lm(model8),lm(model9),lm(model10),lm(model11),lm(model12)) 
+
+head(arrange(dynlm_MASE5,MASE))
+```
+
+Based on the results presented, we'll examine model9 (which uses rain as a predictor) since it boasts the lowest MASE value among all the evaluated models.
+
+### Analyzing model9 using summary & residual analysis
+
+```{r}
+summary(model9)
+```
+
+From the summary of model9, we can deduce the following points:
+
+- Most variables in the model are not significant at the 5% significance level, with the exception of the intercept and S.t.
+  
+- The adjusted R2 value is quite good, standing at 66.55%. This suggests that the dynamic model can account for approximately 66.55% of the variability in the dependent variable, which is RBO.
+
+- The residuals range from a minimum of -0.053222 to a maximum of 0.049497, and the residual standard error (RSE) is 0.02663.
+
+- Based on the F-test for overall model significance, model9 is deemed highly significant at the 5% significance level.
+
+```{r}
+checkresiduals(model9)
+```
+
+
+From the Residual analysis we can say that, Based on the BG test, there is no evidence of serial correlation in the residuals. The distribution of the residuals appears to be random. The ACF plot does not display any significant lags, indicating a lack of clear autocorrelation in the residuals. The histogram suggests that the residuals are not normally distributed.
+
+# Forecasting for RBO
+
+### Plot of the original series alongside the model's predicted values.
+
+
+```{r, fig.cap= "Figure 65"}
+par(mfrow=c(1,1))
+plot(Y.t,ylab='RBO',xlab='Year',main = "Figure 65: Time series plot of the  yearly RBO with fitted model9")
+lines(model9$fitted.values,col="blue")
+```
+
+From the above observations, it's evident that the model doesn't perfectly match all the prior RBO values. Yet, when evaluated on metrics like MASE, R2, and the F-test, it emerges as the best. Let's proceed to predict the upcoming three years using the dynamic model.
+
+#### Plotting with 3 year ahead forecast
+
+```{r, fig.cap= "Figure 66"}
+q = 3
+n = nrow(model9$model)
+rbo.frc = array(NA , (n + q))
+rbo.frc[1:n] = Y.t[3:length(Y.t)]
+trend = array(NA,q)
+trend.start = model9$model[n,"trend(Y.t)"]
+trend = seq(trend.start , trend.start + q/12, 1/12)
+
+for(i in 1:q){
+data.new =c(1,1,rbo.frc[n-2+i],rbo.frc[n-2+i],1,1,trend[i])
+rbo.frc[n+i] = as.vector(model9$coefficients) %*% data.new
+}
+
+plot(RBO,xlim=c(1984,2018),
+ylab='RBO',xlab='Year',
+main = "Figure 66: Time series plot of RBO with 3 years ahead forecast")
+lines(ts(rbo.frc[(n+1):(n+q)],start=c(2015)),col="blue")
+```
+
+The displayed graph illustrates a four-year forecast based on model9. According to this prediction, the RBO values in the upcoming three years are expected to be below the past average RBO figures, attributed to the impact of drought as indicated by the dynamic linear model.
+
+
+# Point Forecast for next three years
+
+```{r}
+round(rbo.frc[(n+1):(n+q)],2)
+```
+
+The displayed results indicate forecasts for the upcoming three years, suggesting that the predicted RBO values will range between 0.69 and 0.70. These projected values are below the average RBO values observed in past years. This decrease might be attributed to the prolonged drought that spanned from 1996 to 2009. However, given that the model didn't aptly fit the RBO series, the reliability of these forecasts is questionable.
+
+# Conclusion
+
+The analysis for Task 3 was effectively carried out on the RBO.csv dataset. In section (a), we undertook a univariate study on all five series (RBO, temperature, rainfall, radiation, relhumidity). Since their frequencies were under 2, these series couldn't be broken down. A variety of univariate models were employed to forecast the RBO values for the upcoming three years (2015-2017) using various modeling techniques (**DLM, koyck, polyDLM, ARDL, and dynlm**). The optimal models, as determined by metrics like R2, F-test, AIC, BIC, and MASE, were two ARDL versions with temperature and radiation as their respective predictors. Both these models were used to predict the RBO for the subsequent three years and aligned well with historical RBO data. However, while the temperature-based model anticipated a consistent RBO rise, the radiation-based model forecasted an initial dip in RBO in the first year followed by growth in 2016-2017. The collective inference from these models is that there's likely to be a steady RBO increase for the years 2015-2017.
+
+For section (b), we applied univariate **dynlm** models after factoring in the drought that spanned 13 years (from 1996-2009). The most promising model, in terms of MASE, R2, and F-test, turned out to be model9, which used rainfall as a predictor. When this model was applied to the main series, it significantly deviated from the actual values, indicating its forecasting limitations. Despite being the top-performing model, its predictions were below the RBO average, potentially due to the prolonged drought from 1996-2009. Given the model's inability to closely match the historical RBO values, the predictions it provided can't be deemed entirely trustworthy.
+
+
+# References
+
+- RMIT University, School of Science, Mathematical Sciences, MATH1307 Forecasting, Module 3: Time Series Regression Models I - Distributed lag models - By using dLagM R-package {https://rmit.instructure.com/courses/112639/modules/items/5127056}
+
+- RMIT University, School of Science, Mathematical Sciences, MATH1307 Forecasting,Module 4 - Time Series Regression Models II - Dynamic Models {https://rmit.instructure.com/courses/112639/files/30915164?module_item_id=5127064&fd_cookie_set=1}
+
+- RMIT University, School of Science, Mathematical Sciences, MATH1307 Forecasting, Module 5 - Exponential Smoothing Methods {https://rmit.instructure.com/courses/112639/pages/module-5-introduction?module_item_id=5127067}
+
+- RMIT University, School of Science, Mathematical Sciences, MATH1307 Forecasting, Module 6 - Linear Innovations State Space Models {https://rmit.instructure.com/courses/112639/pages/module-6-introduction?module_item_id=5127072}
+
+- Jonathan D. Cryer , Kung-Sik Chan, Time Series Analysis
+With Applications in R, Textbook 2008 {https://link-springer-com.ezproxy.lib.rmit.edu.au/book/10.1007/978-0-387-75959-3}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
